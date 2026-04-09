@@ -11,17 +11,17 @@ import 'presentation/screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: RiftTextRpgApp()));
+  runApp(const ProviderScope(child: EchoesOfTheHollowRealmApp()));
 }
 
-class RiftTextRpgApp extends StatelessWidget {
-  const RiftTextRpgApp({super.key});
+class EchoesOfTheHollowRealmApp extends StatelessWidget {
+  const EchoesOfTheHollowRealmApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Rift Terminal RPG',
+      title: 'Echoes of the Hollow Realm',
       theme: AppTheme.darkTheme,
       initialRoute: SplashScreen.routeName,
       routes: {

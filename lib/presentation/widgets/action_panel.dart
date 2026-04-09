@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class ActionPanel extends StatelessWidget {
@@ -19,22 +21,29 @@ class ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         height: 140,
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1A1A1A),
+        decoration: BoxDecoration(
+          color: const Color(0x22FFFFFF),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: const Color(0x66FFFFFF)),
         ),
-        child: GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          childAspectRatio: 2.8,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          children: [
-            _ActionButton(label: 'Attack', icon: Icons.gps_fixed_rounded, enabled: enabled, onPressed: onAttack),
-            _ActionButton(label: 'Defend', icon: Icons.shield_outlined, enabled: enabled, onPressed: onDefend),
-            _ActionButton(label: 'Skill', icon: Icons.auto_awesome, enabled: enabled, onPressed: onSkill),
-            _ActionButton(label: 'Item', icon: Icons.healing_rounded, enabled: enabled, onPressed: onItem),
-          ],
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: GridView.count(
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 2.8,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: [
+                _ActionButton(label: 'Attack', icon: Icons.gps_fixed_rounded, enabled: enabled, onPressed: onAttack),
+                _ActionButton(label: 'Defend', icon: Icons.shield_outlined, enabled: enabled, onPressed: onDefend),
+                _ActionButton(label: 'Skill', icon: Icons.auto_awesome, enabled: enabled, onPressed: onSkill),
+                _ActionButton(label: 'Item', icon: Icons.healing_rounded, enabled: enabled, onPressed: onItem),
+              ],
+            ),
+          ),
         ),
       );
 }
@@ -61,14 +70,16 @@ class _ActionButtonState extends State<_ActionButton> {
 
   @override
   Widget build(BuildContext context) => AnimatedScale(
-        duration: const Duration(milliseconds: 120),
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
         scale: _pressed ? 0.95 : 1,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
+            color: const Color(0x1FFFFFFF),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF7C4DFF)),
+            border: Border.all(color: const Color(0x66FFFFFF)),
             boxShadow: _pressed
                 ? const [
                     BoxShadow(

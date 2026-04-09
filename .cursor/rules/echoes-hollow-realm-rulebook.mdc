@@ -1,0 +1,36 @@
+---
+description: Core rule book for Echoes of the Hollow Realm
+alwaysApply: true
+---
+
+# Echoes of the Hollow Realm Rule Book
+
+## Canon and Tone
+- Preserve dark fantasy + time-loop identity: "Die, learn, return... break the cycle."
+- Keep writing concise, atmospheric, and choice-driven; avoid comedy that breaks immersion.
+- Treat The Keeper as morally ambiguous, never purely good or evil.
+
+## Core Gameplay Pillars
+- Every death must teach something and alter the next loop (state, options, dialogue, or difficulty).
+- Choices must have meaningful trade-offs (power vs cost, safety vs lore, mercy vs corruption).
+- Combat remains turn-based, readable, and text-first; effects support clarity, not clutter.
+
+## Progression and Balance
+- Keep progression steady: visible gains each loop without trivializing elites/bosses.
+- SOUL, LUCK, and Soul Burst should influence outcomes but never invalidate basic attack/defend play.
+- Rare/relic items may be strong, but should include explicit drawbacks or conditions.
+
+## UI and UX Style
+- Use pixel font and glassmorphism-dark visual language consistently.
+- Prioritize readability over visual effects (high contrast, restrained animation, low audio mix).
+- New micro-interactions must be subtle and performant on mobile and web.
+
+## Content and Naming Conventions
+- Name content with Hollow Realm vocabulary (Echo, Hollow, Soul, Rift, Keeper, Loop, Abyss, Ruins).
+- Keep enemy tiers explicit: common, elite, boss.
+- Preserve asset naming discipline (snake_case file names; deterministic IDs for items/enemies/events).
+
+## Implementation Guardrails
+- Favor modular services for combat, events, audio, and progression logic.
+- Avoid hidden side effects: state transitions should be explicit in provider/service methods.
+- Add/adjust logs whenever gameplay behavior changes so player feedback stays transparent.

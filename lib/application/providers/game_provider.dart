@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/save_service.dart';
@@ -9,6 +8,7 @@ import '../../domain/models/item.dart';
 import '../../domain/services/battle_service.dart';
 import '../../domain/services/level_service.dart';
 import '../../domain/services/random_event_service.dart';
+import '../../domain/services/sound_service.dart';
 
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) => GameNotifier());
 
@@ -17,15 +17,18 @@ class GameNotifier extends StateNotifier<GameState> {
       : _saveService = SaveService(),
         _randomEventService = RandomEventService(),
         _battleService = BattleService(),
+        _soundService = SoundService(),
         super(GameState.initial());
 
   final SaveService _saveService;
   final RandomEventService _randomEventService;
   final BattleService _battleService;
+  final SoundService _soundService;
 
   Future<void> startNewGame() async {
     state = GameState.initial();
     _appendLog('> New session started. Entering the rift...');
+    unawaited(_soundService.playBgm(BgmType.exploration));
     await saveGame();
   }
 
@@ -41,7 +44,21 @@ class GameNotifier extends StateNotifier<GameState> {
   Future<void> clearSave() => _saveService.clear();
   void toggleSound(bool enabled) {
     state = state.copyWith(soundEnabled: enabled);
+    unawaited(_soundService.setEnabled(enabled));
+    if (enabled) {
+      _syncBgmToState();
+    } else {
+      unawaited(_soundService.stopBgm());
+    }
     _autoSave();
+  }
+
+  void playUiClick() {
+    unawaited(_soundService.playSfx(SfxType.uiClick));
+  }
+
+  void playMenuOpen() {
+    unawaited(_soundService.playSfx(SfxType.menuOpen));
   }
 
   void advanceTurnDay() {
@@ -53,7 +70,8 @@ class GameNotifier extends StateNotifier<GameState> {
       final enemy = _randomEventService.randomEnemy(state.player.level, state.riftLevel);
       state = state.copyWith(day: nextDay, phase: GamePhase.battle, enemy: enemy, isPlayerTurn: true, storyBeat: state.storyBeat + 1);
       _appendLog('> Day $nextDay encounter! ${enemy.name} appears.');
-      _playBeep();
+      _playEncounterSound(enemy.name);
+      _syncBgmToState();
       _autoSave();
       return;
     }
@@ -130,7 +148,8 @@ class GameNotifier extends StateNotifier<GameState> {
       final enemy = _randomEventService.randomEnemy(state.player.level, state.riftLevel);
       state = state.copyWith(phase: GamePhase.battle, enemy: enemy, isPlayerTurn: true, storyBeat: state.storyBeat + 1);
       _appendLog('> Encounter! ${enemy.name} emerges from the dark.');
-      _playBeep();
+      _playEncounterSound(enemy.name);
+      _syncBgmToState();
       _autoSave();
       return;
     }
@@ -159,6 +178,7 @@ class GameNotifier extends StateNotifier<GameState> {
           ? '> CRITICAL! You strike ${enemy.name} for $damage damage.'
           : '> You strike ${enemy.name} for $damage damage.',
     );
+    unawaited(_soundService.playSfx(crit ? SfxType.criticalHit : SfxType.attack));
 
     if (remainingEnemyHp <= 0) {
       _resolveVictory();
@@ -222,6 +242,7 @@ class GameNotifier extends StateNotifier<GameState> {
       player: state.player.copyWith(currentSoul: nextSoul, soulBurstCharge: burstCharge),
     );
     _appendLog('> Soul Fire hits ${enemy.name} for $damage magic damage.');
+    unawaited(_soundService.playSfx(SfxType.attack));
 
     if (remainingEnemyHp <= 0) {
       _resolveVictory();
@@ -260,6 +281,7 @@ class GameNotifier extends StateNotifier<GameState> {
       player: state.player.copyWith(soulBurstCharge: 0),
     );
     _appendLog('> Soul Burst tears through ${enemy.name} for $damage damage.');
+    unawaited(_soundService.playSfx(SfxType.criticalHit));
 
     if (remainingEnemyHp <= 0) {
       _resolveVictory();
@@ -294,10 +316,12 @@ class GameNotifier extends StateNotifier<GameState> {
     final nextSoul = (state.player.currentSoul + 6).clamp(0, state.player.maxSoul);
     state = state.copyWith(player: state.player.copyWith(currentHp: hp, currentSoul: nextSoul));
     _appendLog('> ${enemy.name} hits you for $damage damage.');
+    unawaited(_soundService.playSfx(SfxType.enemyAttack));
 
     if (hp <= 0) {
       _applyDeathLoop();
-      _playBeep();
+      unawaited(_soundService.playSfx(SfxType.gameOver));
+      _syncBgmToState();
       _autoSave();
       return;
     }
@@ -326,10 +350,12 @@ class GameNotifier extends StateNotifier<GameState> {
     );
 
     _appendLog('> ${enemy.name} defeated. +${enemy.xpReward} XP, +${enemy.goldReward} gold.');
+    unawaited(_soundService.playSfx(SfxType.enemyDeath));
     _appendLog('> You advance to Rift Level $nextRiftLevel.');
+    _syncBgmToState();
     if (leveledUp) {
       _appendLog('> Level up! You are now level ${player.level}.');
-      _playBeep();
+      unawaited(_soundService.playSfx(SfxType.levelUp));
     }
     _autoSave();
   }
@@ -346,6 +372,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final nextInventory = [...state.inventory]..removeAt(potionIndex);
     state = state.copyWith(player: state.player.copyWith(currentHp: healed), inventory: nextInventory);
     _appendLog('> You use ${potion.name} and recover ${potion.value} HP.');
+    unawaited(_soundService.playSfx(SfxType.itemUse));
     _autoSave();
   }
 
@@ -374,8 +401,32 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(log: lines.length > 200 ? lines.sublist(lines.length - 200) : lines);
   }
 
-  void _playBeep() {
-    if (state.soundEnabled) SystemSound.play(SystemSoundType.click);
+  void _playEncounterSound(String enemyName) {
+    if (enemyName == 'The Forgotten King' ||
+        enemyName == 'The Time Devourer' ||
+        enemyName == 'The Keeper') {
+      unawaited(_soundService.playSfx(SfxType.menuOpen));
+      return;
+    }
+    unawaited(_soundService.playSfx(SfxType.enemyAttack));
+  }
+
+  void _syncBgmToState() {
+    if (!state.soundEnabled) return;
+    if (state.phase == GamePhase.battle && state.enemy != null) {
+      final isBoss = state.enemy!.name == 'The Forgotten King' ||
+          state.enemy!.name == 'The Time Devourer' ||
+          state.enemy!.name == 'The Keeper';
+      unawaited(_soundService.playBgm(isBoss ? BgmType.boss : BgmType.battle));
+      return;
+    }
+    unawaited(_soundService.playBgm(BgmType.exploration));
+  }
+
+  @override
+  void dispose() {
+    unawaited(_soundService.dispose());
+    super.dispose();
   }
 
   void _autoSave() {

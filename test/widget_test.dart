@@ -11,7 +11,7 @@ import 'package:game/main.dart';
 
 void main() {
   testWidgets('app boots into splash screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const RiftTextRpgApp());
-    expect(find.textContaining('RIFT TERMINAL'), findsOneWidget);
+    await tester.pumpWidget(const EchoesOfTheHollowRealmApp());
+    expect(find.textContaining('ECHOES OF THE HOLLOW REALM'), findsOneWidget);
   });
 }

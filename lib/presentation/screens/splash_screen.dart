@@ -30,7 +30,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) => const Scaffold(
         body: Center(
-          child: TypingText(text: 'RIFT TERMINAL v1.0\\nInitializing...\\n', speed: Duration(milliseconds: 30)),
+          child: TypingText(text: 'ECHOES OF THE HOLLOW REALM v1.0\\nInitializing...\\n', speed: Duration(milliseconds: 30)),
         ),
       );
 }

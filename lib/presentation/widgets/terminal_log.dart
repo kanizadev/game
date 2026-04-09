@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import 'typing_text.dart';
@@ -38,36 +40,50 @@ class _TerminalLogState extends State<TerminalLog> {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF121212),
-        border: Border.all(color: const Color(0xFF333333)),
+        color: const Color(0x1FFFFFFF),
+        border: Border.all(color: const Color(0x66FFFFFF)),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: ListView.builder(
-        controller: _controller,
-        itemCount: widget.log.length,
-        itemBuilder: (context, index) {
-          final entry = widget.log[index];
-          final color = _resolveColor(entry);
-          final style = TextStyle(
-            height: 1.35,
-            color: color,
-            fontFamily: 'monospace',
-            fontSize: 13,
-          );
-          return TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 300),
-            tween: Tween(begin: 0, end: 1),
-            builder: (context, value, child) => Opacity(opacity: value, child: child),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: index == widget.log.length - 1
-                  ? TypingText(text: entry, style: style)
-                  : Text(entry, style: style),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: ListView.builder(
+              controller: _controller,
+              itemCount: widget.log.length,
+              itemBuilder: (context, index) {
+                final entry = widget.log[index];
+                final color = _resolveColor(entry);
+                final style = TextStyle(
+                  height: 1.35,
+                  color: color,
+                  fontSize: 13,
+                );
+                return TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 340),
+                  tween: Tween(begin: 0, end: 1),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - value) * 8),
+                      child: child,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: index == widget.log.length - 1
+                        ? TypingText(text: entry, style: style)
+                        : Text(entry, style: style),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

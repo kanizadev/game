@@ -24,8 +24,8 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             Card(
               child: SwitchListTile(
-                title: const Text('Enable simple beep effects'),
-                subtitle: const Text('Uses platform click sound for combat events.'),
+                title: const Text('Enable Retro Sound FX + BGM'),
+                subtitle: const Text('Minimal old-school sounds at low volume.'),
                 value: state.soundEnabled,
                 onChanged: (value) => ref.read(gameProvider.notifier).toggleSound(value),
               ),

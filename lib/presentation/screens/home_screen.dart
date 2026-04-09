@@ -12,7 +12,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rift Terminal RPG')),
+      appBar: AppBar(title: const Text('Echoes of the Hollow Realm')),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -30,7 +30,7 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('RIFT TERMINAL', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    const Text('ECHOES OF THE HOLLOW REALM', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
                     const SizedBox(height: 6),
                     Text('Enter the anomaly and survive another day.', style: TextStyle(color: Colors.grey.shade300)),
                     const SizedBox(height: 18),
