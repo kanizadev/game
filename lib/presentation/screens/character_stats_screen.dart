@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../application/providers/game_provider.dart';
 import '../../domain/services/level_service.dart';
@@ -43,7 +44,7 @@ class CharacterStatsScreen extends ConsumerWidget {
                     CircleAvatar(
                       radius: 34,
                       backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      child: const Icon(Icons.person, size: 38),
+                      child: const FaIcon(FontAwesomeIcons.user, size: 30),
                     ),
                     const SizedBox(height: 10),
                     Text(player.name, style: Theme.of(context).textTheme.titleLarge),

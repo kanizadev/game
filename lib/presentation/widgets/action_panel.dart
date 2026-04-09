@@ -1,6 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ActionPanel extends StatelessWidget {
   const ActionPanel({
@@ -19,31 +18,25 @@ class ActionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 140,
+        constraints: const BoxConstraints(minHeight: 120, maxHeight: 150),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0x22FFFFFF),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border.all(color: const Color(0x66FFFFFF)),
+          color: const Color(0xEE070C0A),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          border: Border.all(color: const Color(0xFF1F5A41)),
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: GridView.count(
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              childAspectRatio: 2.8,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              children: [
-                _ActionButton(label: 'Attack', icon: Icons.gps_fixed_rounded, enabled: enabled, onPressed: onAttack),
-                _ActionButton(label: 'Defend', icon: Icons.shield_outlined, enabled: enabled, onPressed: onDefend),
-                _ActionButton(label: 'Skill', icon: Icons.auto_awesome, enabled: enabled, onPressed: onSkill),
-                _ActionButton(label: 'Item', icon: Icons.healing_rounded, enabled: enabled, onPressed: onItem),
-              ],
-            ),
-          ),
+        child: GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 2.8,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          children: [
+            _ActionButton(label: 'Attack', icon: FontAwesomeIcons.handFist, enabled: enabled, onPressed: onAttack),
+            _ActionButton(label: 'Defend', icon: FontAwesomeIcons.shieldHalved, enabled: enabled, onPressed: onDefend),
+            _ActionButton(label: 'Skill', icon: FontAwesomeIcons.burst, enabled: enabled, onPressed: onSkill),
+            _ActionButton(label: 'Item', icon: FontAwesomeIcons.flask, enabled: enabled, onPressed: onItem),
+          ],
         ),
       );
 }
@@ -57,7 +50,7 @@ class _ActionButton extends StatefulWidget {
   });
 
   final String label;
-  final IconData icon;
+  final FaIconData icon;
   final bool enabled;
   final VoidCallback onPressed;
 
@@ -77,14 +70,14 @@ class _ActionButtonState extends State<_ActionButton> {
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: const Color(0x1FFFFFFF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0x66FFFFFF)),
+            color: const Color(0xFF0A140E),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: const Color(0xFF1F5A41)),
             boxShadow: _pressed
                 ? const [
                     BoxShadow(
-                      color: Color(0x667C4DFF),
-                      blurRadius: 12,
+                      color: Color(0x662CFF8F),
+                      blurRadius: 8,
                       spreadRadius: 1,
                     ),
                   ]
@@ -93,7 +86,7 @@ class _ActionButtonState extends State<_ActionButton> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(6),
               onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
               onTapCancel: () => setState(() => _pressed = false),
               onTap: widget.enabled
@@ -106,9 +99,16 @@ class _ActionButtonState extends State<_ActionButton> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    Icon(widget.icon, size: 18, color: Colors.white),
+                    FaIcon(widget.icon, size: 16, color: const Color(0xFF73FFD9)),
                     const SizedBox(width: 8),
-                    Text(widget.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Text(
+                      widget.label,
+                      style: const TextStyle(
+                        color: Color(0xFFB7FFD8),
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'PixelifySans',
+                      ),
+                    ),
                   ],
                 ),
               ),

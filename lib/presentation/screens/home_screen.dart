@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../application/providers/game_provider.dart';
 import 'game_screen.dart';
@@ -42,7 +43,7 @@ class HomeScreen extends ConsumerWidget {
                           if (!context.mounted) return;
                           Navigator.pushNamed(context, GameScreen.routeName);
                         },
-                        icon: const Icon(Icons.play_arrow_rounded),
+                        icon: const FaIcon(FontAwesomeIcons.play, size: 16),
                         label: const Text('Start Game'),
                       ),
                     ),
@@ -59,7 +60,7 @@ class HomeScreen extends ConsumerWidget {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No save file found.')));
                           }
                         },
-                        icon: const Icon(Icons.download_rounded),
+                        icon: const FaIcon(FontAwesomeIcons.download, size: 16),
                         label: const Text('Load Game'),
                       ),
                     ),
@@ -68,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.pushNamed(context, SettingsScreen.routeName),
-                        icon: const Icon(Icons.settings_outlined),
+                        icon: const FaIcon(FontAwesomeIcons.gear, size: 16),
                         label: const Text('Settings'),
                       ),
                     ),

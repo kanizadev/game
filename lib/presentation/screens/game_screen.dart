@@ -1,7 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../application/providers/game_provider.dart';
 import '../../domain/models/game_state.dart';
@@ -21,7 +20,7 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   int _observedLogLength = 0;
   String? _damagePopupText;
-  Color _damagePopupColor = const Color(0xFFE0E0E0);
+  Color _damagePopupColor = const Color(0xFFB7FFD8);
   bool _showDamagePopup = false;
   Color _flashColor = Colors.transparent;
   bool _showFlash = false;
@@ -48,14 +47,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               notifier.playMenuOpen();
               _showInventoryModal(context, state, notifier);
             },
-            icon: const Icon(Icons.backpack_outlined),
+            icon: const FaIcon(FontAwesomeIcons.boxArchive, size: 16),
           ),
           IconButton(
             onPressed: () {
               notifier.playMenuOpen();
               Navigator.pushNamed(context, CharacterStatsScreen.routeName);
             },
-            icon: const Icon(Icons.person_outline),
+            icon: const FaIcon(FontAwesomeIcons.user, size: 16),
           ),
           IconButton(
             onPressed: () async {
@@ -63,21 +62,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Game saved.')));
             },
-            icon: const Icon(Icons.save_outlined),
+            icon: const FaIcon(FontAwesomeIcons.floppyDisk, size: 16),
           ),
         ],
       ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0A0E1A), Color(0xFF121528), Color(0xFF0B1020)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF050807), Color(0xFF060B08), Color(0xFF050807)],
           ),
         ),
         child: Stack(
           children: [
-            const Positioned.fill(child: _AmbientParticleLayer()),
+            const Positioned.fill(child: _ScanlineLayer()),
             AnimatedOpacity(
               opacity: _showFlash ? 1 : 0,
               duration: const Duration(milliseconds: 180),
@@ -105,35 +104,37 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                        icon: const Icon(Icons.home_outlined),
+                        icon: const FaIcon(FontAwesomeIcons.house, size: 16),
                         label: const Text('Return to Home'),
                       ),
                     )
                   else
                     Container(
-                      height: 140,
+                      constraints: const BoxConstraints(minHeight: 120, maxHeight: 160),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0x22FFFFFF),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                        border: Border.all(color: const Color(0x66FFFFFF)),
+                        color: const Color(0xEE070C0A),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                        border: Border.all(color: const Color(0xFF1F5A41)),
                       ),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ...state.choices.map(
-                            (choice) => ElevatedButton(
-                              onPressed: () => notifier.chooseStoryOption(choice.id),
-                              child: Text(choice.text),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            ...state.choices.map(
+                              (choice) => ElevatedButton(
+                                onPressed: () => notifier.chooseStoryOption(choice.id),
+                                child: Text(choice.text),
+                              ),
                             ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: notifier.advanceTurnDay,
-                            icon: const Icon(Icons.skip_next),
-                            label: const Text('Advance Day'),
-                          ),
-                        ],
+                            ElevatedButton.icon(
+                              onPressed: notifier.advanceTurnDay,
+                              icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 16),
+                              label: const Text('Advance Day'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],
@@ -196,14 +197,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         entry.contains('Soul Fire') ||
         entry.contains('Soul Burst') ||
         entry.contains('CRITICAL')) {
-      _triggerDamagePopup('-$damage', const Color(0xFF4CAF50));
-      _triggerFlash(const Color(0x334FC3F7));
+      _triggerDamagePopup('-$damage', const Color(0xFF2CFF8F));
+      _triggerFlash(const Color(0x252CFF8F));
       return;
     }
 
     if (entry.contains('hits you')) {
-      _triggerDamagePopup('-$damage', const Color(0xFFFF5252));
-      _triggerFlash(const Color(0x44FF5252));
+      _triggerDamagePopup('-$damage', const Color(0xFFFF7575));
+      _triggerFlash(const Color(0x30FF7575));
     }
   }
 
@@ -243,9 +244,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         heightFactor: 0.6,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0x22FFFFFF),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: const Color(0x66FFFFFF)),
+            color: const Color(0xEE070C0A),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            border: Border.all(color: const Color(0xFF1F5A41)),
           ),
           child: Column(
             children: [
@@ -254,7 +255,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF333333),
+                  color: const Color(0xFF1F5A41),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -272,7 +273,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         notifier.playUiClick();
                         notifier.usePotionOutsideBattle();
                       },
-                      icon: const Icon(Icons.healing),
+                      icon: const FaIcon(FontAwesomeIcons.flask, size: 14),
                       label: const Text('Use Consumable'),
                     ),
                   ],
@@ -282,13 +283,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: state.inventory.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFF333333)),
+                  separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFF1F5A41)),
                   itemBuilder: (context, index) {
                     final item = state.inventory[index];
                     return ListTile(
-                      leading: Icon(_itemIcon(item.type), color: const Color(0xFF7C4DFF)),
-                      title: Text(item.name, style: const TextStyle(color: Color(0xFFE0E0E0))),
-                      subtitle: Text(item.description, style: const TextStyle(color: Color(0xFFB0B0B0))),
+                      leading: FaIcon(_itemIcon(item.type), size: 14, color: const Color(0xFF73FFD9)),
+                      title: Text(item.name, style: const TextStyle(color: Color(0xFFB7FFD8))),
+                      subtitle: Text(item.description, style: const TextStyle(color: Color(0xFF8ED2AE))),
                     );
                   },
                 ),
@@ -300,11 +301,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  IconData _itemIcon(ItemType type) => switch (type) {
-        ItemType.weapon => Icons.gpp_good_outlined,
-        ItemType.armor => Icons.shield_outlined,
-        ItemType.relic => Icons.auto_awesome,
-        ItemType.consumable => Icons.healing_rounded,
+  FaIconData _itemIcon(ItemType type) => switch (type) {
+        ItemType.weapon => FontAwesomeIcons.handFist,
+        ItemType.armor => FontAwesomeIcons.shieldHalved,
+        ItemType.relic => FontAwesomeIcons.gem,
+        ItemType.consumable => FontAwesomeIcons.flask,
       };
 }
 
@@ -317,25 +318,14 @@ class _TopHud extends StatelessWidget {
     final enemy = state.enemy;
     return Container(
       width: double.infinity,
-      height: 100,
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(minHeight: 108),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0x22FFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x66FFFFFF)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4D000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
-        ],
+        color: const Color(0xEE070C0A),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF1F5A41)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Row(
+      child: Row(
         children: [
           const CircleAvatar(
             radius: 24,
@@ -343,54 +333,91 @@ class _TopHud extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(colors: [Color(0xFF9C27B0), Color(0xFF2196F3)]),
+                gradient: LinearGradient(colors: [Color(0xFF2CFF8F), Color(0xFF73FFD9)]),
               ),
-              child: SizedBox(width: 48, height: 48, child: Icon(Icons.person, color: Colors.white)),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: FaIcon(
+                  FontAwesomeIcons.user,
+                  size: 20,
+                  color: Color(0xFF031108),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '${state.player.name}  Lv.${state.player.level}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+                    color: Color(0xFFB7FFD8),
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _StatBar(
                   value: state.player.currentHp / state.player.maxHp,
-                  fillColor: const Color(0xFFFF4D4D),
+                  fillColor: const Color(0xFFFF7575),
                   pulseWhenLow: state.player.currentHp / state.player.maxHp <= 0.3,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _StatBar(
                   value: state.player.xp / (state.player.level * 70),
-                  fillColor: const Color(0xFFFFD54F),
+                  fillColor: const Color(0xFF73FFD9),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _StatBar(
                   value: state.player.currentSoul / state.player.maxSoul,
-                  fillColor: const Color(0xFF4FC3F7),
+                  fillColor: const Color(0xFF2CFF8F),
                 ),
               ],
             ),
           ),
           if (enemy != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                enemy.name,
-                style: const TextStyle(color: Color(0xFFFF5252), fontSize: 11),
+            SizedBox(
+              width: 84,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFF1F5A41)),
+                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFF0B1B12),
+                      ),
+                      child: const Center(
+                        child: FaIcon(
+                          FontAwesomeIcons.skull,
+                          size: 14,
+                          color: Color(0xFFFF7575),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      enemy.name,
+                      style: const TextStyle(color: Color(0xFFFF7575), fontSize: 10),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
-          ),
-        ),
       ),
     );
   }
@@ -459,76 +486,50 @@ class _StatBarState extends State<_StatBar> with SingleTickerProviderStateMixin 
           ),
           child: child,
         ),
-        child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          height: 8,
+          height: 10,
           child: Stack(
             children: [
               const Positioned.fill(
-                child: ColoredBox(color: Color(0xFF333333)),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF0B1B12),
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                  ),
+                ),
               ),
-              AnimatedFractionallySizedBox(
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeInOut,
-                alignment: Alignment.centerLeft,
-                widthFactor: widget.value.clamp(0, 1),
-                child: ColoredBox(color: widget.fillColor),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: widget.value.clamp(0, 1),
+                        child: ColoredBox(color: widget.fillColor),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-      ),
       );
 }
 
-class _AmbientParticleLayer extends StatelessWidget {
-  const _AmbientParticleLayer();
+class _ScanlineLayer extends StatelessWidget {
+  const _ScanlineLayer();
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
-        child: Stack(
-          children: const [
-            Positioned(
-              top: 80,
-              left: -40,
-              child: _GlowOrb(size: 140, color: Color(0x337C4DFF)),
-            ),
-            Positioned(
-              top: 260,
-              right: -30,
-              child: _GlowOrb(size: 110, color: Color(0x224FC3F7)),
-            ),
-            Positioned(
-              bottom: 120,
-              left: 30,
-              child: _GlowOrb(size: 90, color: Color(0x22FFFFFF)),
-            ),
-          ],
-        ),
-      );
-}
-
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.6, end: 1),
-        duration: const Duration(milliseconds: 2400),
-        curve: Curves.easeInOut,
-        onEnd: () {},
-        builder: (context, value, _) => Opacity(
-          opacity: value * 0.8,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [color, Colors.transparent],
+        child: Column(
+          children: List.generate(
+            72,
+            (index) => Expanded(
+              child: ColoredBox(
+                color: index.isEven ? const Color(0x0800FF95) : Colors.transparent,
               ),
             ),
           ),

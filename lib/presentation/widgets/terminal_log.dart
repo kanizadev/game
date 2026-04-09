@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import 'typing_text.dart';
@@ -41,48 +39,43 @@ class _TerminalLogState extends State<TerminalLog> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0x1FFFFFFF),
-        border: Border.all(color: const Color(0x66FFFFFF)),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xEE070C0A),
+        border: Border.all(color: const Color(0xFF1F5A41)),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: ListView.builder(
-              controller: _controller,
-              itemCount: widget.log.length,
-              itemBuilder: (context, index) {
-                final entry = widget.log[index];
-                final color = _resolveColor(entry);
-                final style = TextStyle(
-                  height: 1.35,
-                  color: color,
-                  fontSize: 13,
-                );
-                return TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 340),
-                  tween: Tween(begin: 0, end: 1),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) => Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, (1 - value) * 8),
-                      child: child,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: index == widget.log.length - 1
-                        ? TypingText(text: entry, style: style)
-                        : Text(entry, style: style),
-                  ),
-                );
-              },
-            ),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: ListView.builder(
+          controller: _controller,
+          itemCount: widget.log.length,
+          itemBuilder: (context, index) {
+            final entry = widget.log[index];
+            final color = _resolveColor(entry);
+            final style = TextStyle(
+              height: 1.35,
+              color: color,
+              fontSize: 13,
+              fontFamily: 'PixelifySans',
+            );
+            return TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 220),
+              tween: Tween(begin: 0, end: 1),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) => Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - value) * 4),
+                  child: child,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: index == widget.log.length - 1
+                    ? TypingText(text: '> $entry', style: style)
+                    : Text('> $entry', style: style),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -91,7 +84,7 @@ class _TerminalLogState extends State<TerminalLog> {
   Color _resolveColor(String entry) {
     final lower = entry.toLowerCase();
     if (lower.contains('you') || lower.contains('player') || lower.contains('soul burst')) {
-      return const Color(0xFF4CAF50);
+      return const Color(0xFF2CFF8F);
     }
     if (lower.contains('enemy') ||
         lower.contains('rat') ||
@@ -99,14 +92,14 @@ class _TerminalLogState extends State<TerminalLog> {
         lower.contains('king') ||
         lower.contains('devourer') ||
         lower.contains('keeper')) {
-      return const Color(0xFFFF5252);
+      return const Color(0xFFFF7575);
     }
     if (lower.contains('loop') ||
         lower.contains('system') ||
         lower.contains('save') ||
         lower.contains('level up')) {
-      return const Color(0xFFBB86FC);
+      return const Color(0xFF73FFD9);
     }
-    return const Color(0xFFE0E0E0);
+    return const Color(0xFFB7FFD8);
   }
 }

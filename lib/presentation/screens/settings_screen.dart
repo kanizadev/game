@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../application/providers/game_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -37,7 +38,7 @@ class SettingsScreen extends ConsumerWidget {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Save data deleted.')));
               },
-              icon: const Icon(Icons.delete_outline),
+              icon: const FaIcon(FontAwesomeIcons.trash, size: 16),
               label: const Text('Delete Save Data'),
             ),
           ],
