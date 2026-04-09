@@ -341,7 +341,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ElevatedButton.icon(
               onPressed: notifier.advanceTurnDay,
               icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 16),
-              label: const Text('Advance Day'),
+              label: const Text('Advance'),
             ),
           ],
         ),

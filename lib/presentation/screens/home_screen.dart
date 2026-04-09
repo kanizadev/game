@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../application/providers/game_provider.dart';
 import 'game_screen.dart';
+import 'rulebook_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -62,6 +63,15 @@ class HomeScreen extends ConsumerWidget {
                         },
                         icon: const FaIcon(FontAwesomeIcons.download, size: 16),
                         label: const Text('Load Game'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.pushNamed(context, RulebookScreen.routeName),
+                        icon: const FaIcon(FontAwesomeIcons.bookOpen, size: 16),
+                        label: const Text('Rulebook'),
                       ),
                     ),
                     const SizedBox(height: 10),

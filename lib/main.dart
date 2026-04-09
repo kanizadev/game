@@ -6,6 +6,7 @@ import 'presentation/screens/character_stats_screen.dart';
 import 'presentation/screens/game_screen.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/inventory_screen.dart';
+import 'presentation/screens/rulebook_screen.dart';
 import 'presentation/screens/settings_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 
@@ -30,6 +31,7 @@ class EchoesOfTheHollowRealmApp extends StatelessWidget {
         GameScreen.routeName: (_) => const GameScreen(),
         InventoryScreen.routeName: (_) => const InventoryScreen(),
         CharacterStatsScreen.routeName: (_) => const CharacterStatsScreen(),
+        RulebookScreen.routeName: (_) => const RulebookScreen(),
         SettingsScreen.routeName: (_) => const SettingsScreen(),
       },
     );

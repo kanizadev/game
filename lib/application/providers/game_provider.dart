@@ -109,6 +109,7 @@ class GameNotifier extends StateNotifier<GameState> {
         player: state.player.copyWith(currentHp: healed, currentSoul: soul),
       );
       _appendLog('> You regain 12 HP and 10 SOUL.');
+      advanceTurnDay();
       return;
     }
 
@@ -122,7 +123,7 @@ class GameNotifier extends StateNotifier<GameState> {
       );
       state = state.copyWith(inventory: [...state.inventory, potion]);
       _appendLog('> You found a Minor Potion.');
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -133,7 +134,7 @@ class GameNotifier extends StateNotifier<GameState> {
         keeperAlignment: state.keeperAlignment + 1,
       );
       _appendLog('> The knight grants you an Echo Sigil. +1 LUCK.');
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -153,7 +154,7 @@ class GameNotifier extends StateNotifier<GameState> {
         memoryFlags: {...state.memoryFlags, 'keeper_mark'}.toList(),
         keeperAlignment: state.keeperAlignment - 1,
       );
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -170,7 +171,7 @@ class GameNotifier extends StateNotifier<GameState> {
         keeperAlignment: state.keeperAlignment - 2,
       );
       _appendLog('> You take the Cursed Ring. Power answers, but at a cost.');
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -186,7 +187,7 @@ class GameNotifier extends StateNotifier<GameState> {
         memoryFlags: {...state.memoryFlags, 'keeper_pact'}.toList(),
       );
       _appendLog('> Keeper Pact formed: +2 ATK, +4 max SOUL.');
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -196,7 +197,7 @@ class GameNotifier extends StateNotifier<GameState> {
         memoryFlags: {...state.memoryFlags, 'keeper_resisted'}.toList(),
       );
       _appendLog('> You hold your will. The Keeper retreats.');
-      _autoSave();
+      advanceTurnDay();
       return;
     }
 
@@ -215,28 +216,10 @@ class GameNotifier extends StateNotifier<GameState> {
         ],
       );
       _appendLog('> Shadow boon: +1 ATK and temporary regen.');
+      advanceTurnDay();
       return;
     }
-
-    if (_randomEventService.shouldTriggerEncounter(state.day, state.riftLevel)) {
-      final enemy = _randomEventService.randomEnemy(state.player.level, state.riftLevel);
-      state = state.copyWith(phase: GamePhase.battle, enemy: enemy, isPlayerTurn: true, storyBeat: state.storyBeat + 1);
-      _appendLog('> Encounter! ${enemy.name} emerges from the dark.');
-      _playEncounterSound(enemy.name);
-      _syncBgmToState();
-      _autoSave();
-      return;
-    }
-
-    state = state.copyWith(
-      choices: _randomEventService.nextChoices(
-        state.storyBeat + 1,
-        memoryFlags: state.memoryFlags,
-        keeperAlignment: state.keeperAlignment,
-      ),
-      storyBeat: state.storyBeat + 1,
-    );
-    _autoSave();
+    advanceTurnDay();
   }
 
   void playerAttack() {
