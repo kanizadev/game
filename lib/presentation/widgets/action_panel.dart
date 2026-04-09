@@ -7,40 +7,102 @@ class ActionPanel extends StatelessWidget {
     required this.onDefend,
     required this.onItem,
     required this.onSkill,
-    required this.onSoulBurst,
-    required this.onRun,
     required this.enabled,
-    required this.soulBurstReady,
   });
   final VoidCallback onAttack;
   final VoidCallback onDefend;
   final VoidCallback onItem;
   final VoidCallback onSkill;
-  final VoidCallback onSoulBurst;
-  final VoidCallback onRun;
   final bool enabled;
-  final bool soulBurstReady;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _actionButton('Attack', Icons.gps_fixed_rounded, onAttack),
-          _actionButton('Cast Skill', Icons.auto_awesome, onSkill),
-          _actionButton('Defend', Icons.shield_outlined, onDefend),
-          _actionButton('Use Item', Icons.healing_rounded, onItem),
-          _actionButton('Soul Burst', Icons.flash_on_rounded, onSoulBurst, overrideEnabled: enabled && soulBurstReady),
-          _actionButton('Run', Icons.directions_run_rounded, onRun),
-        ],
+  Widget build(BuildContext context) => Container(
+        height: 140,
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 2.8,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          children: [
+            _ActionButton(label: 'Attack', icon: Icons.gps_fixed_rounded, enabled: enabled, onPressed: onAttack),
+            _ActionButton(label: 'Defend', icon: Icons.shield_outlined, enabled: enabled, onPressed: onDefend),
+            _ActionButton(label: 'Skill', icon: Icons.auto_awesome, enabled: enabled, onPressed: onSkill),
+            _ActionButton(label: 'Item', icon: Icons.healing_rounded, enabled: enabled, onPressed: onItem),
+          ],
+        ),
       );
+}
 
-  Widget _actionButton(String text, IconData icon, VoidCallback onPressed, {bool? overrideEnabled}) => SizedBox(
-        width: 130,
-        child: ElevatedButton.icon(
-          onPressed: (overrideEnabled ?? enabled) ? onPressed : null,
-          icon: Icon(icon, size: 18),
-          label: Text(text),
+class _ActionButton extends StatefulWidget {
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  State<_ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<_ActionButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) => AnimatedScale(
+        duration: const Duration(milliseconds: 120),
+        scale: _pressed ? 0.95 : 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF7C4DFF)),
+            boxShadow: _pressed
+                ? const [
+                    BoxShadow(
+                      color: Color(0x667C4DFF),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
+              onTapCancel: () => setState(() => _pressed = false),
+              onTap: widget.enabled
+                  ? () {
+                      setState(() => _pressed = false);
+                      widget.onPressed();
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(widget.icon, size: 18, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(widget.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       );
 }
