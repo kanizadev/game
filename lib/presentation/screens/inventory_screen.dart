@@ -26,9 +26,15 @@ class InventoryScreen extends ConsumerWidget {
           separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final item = state.inventory[index];
+            final icon = switch (item.type) {
+              _ when item.type.name == 'weapon' => Icons.gpp_good_outlined,
+              _ when item.type.name == 'armor' => Icons.shield_outlined,
+              _ when item.type.name == 'relic' => Icons.auto_awesome,
+              _ => Icons.healing_rounded,
+            };
             return Card(
               child: ListTile(
-                leading: Icon(item.type.name == 'weapon' ? Icons.gpp_good_outlined : Icons.healing_rounded),
+                leading: Icon(icon),
                 title: Text(item.name),
                 subtitle: Text(item.description),
                 trailing: Text(item.type.name.toUpperCase()),
@@ -39,7 +45,7 @@ class InventoryScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => ref.read(gameProvider.notifier).usePotionOutsideBattle(),
-        label: const Text('Use Potion'),
+        label: const Text('Use Consumable'),
         icon: const Icon(Icons.healing),
       ),
     );

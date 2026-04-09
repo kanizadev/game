@@ -66,16 +66,63 @@ class GameNotifier extends StateNotifier<GameState> {
     _appendLog('> ${_randomEventService.flavorText(choiceId)}');
 
     if (choiceId == 'rest') {
-      final healed = (state.player.currentHp + 10).clamp(0, state.player.maxHp);
-      state = state.copyWith(player: state.player.copyWith(currentHp: healed));
-      _appendLog('> You regain 10 HP.');
+      final healed = (state.player.currentHp + 12).clamp(0, state.player.maxHp);
+      final soul = (state.player.currentSoul + 10).clamp(0, state.player.maxSoul);
+      state = state.copyWith(
+        player: state.player.copyWith(currentHp: healed, currentSoul: soul),
+      );
+      _appendLog('> You regain 12 HP and 10 SOUL.');
       return;
     }
 
-    if (choiceId == 'merchant') {
-      const potion = Item(id: 'small_potion', name: 'Small Potion', type: ItemType.potion, value: 25, description: 'Restores 25 HP.');
+    if (choiceId == 'forage') {
+      const potion = Item(
+        id: 'minor_potion',
+        name: 'Minor Potion',
+        type: ItemType.consumable,
+        value: 20,
+        description: 'Restores 20 HP.',
+      );
       state = state.copyWith(inventory: [...state.inventory, potion]);
-      _appendLog('> The merchant leaves you a potion.');
+      _appendLog('> You found a Minor Potion.');
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'knight_help') {
+      final player = state.player.copyWith(luck: state.player.luck + 1);
+      state = state.copyWith(player: player);
+      _appendLog('> The knight grants you an Echo Sigil. +1 LUCK.');
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'knight_ignore') {
+      const crystal = Item(
+        id: 'loop_crystal',
+        name: 'Loop Crystal',
+        type: ItemType.relic,
+        value: 0,
+        description: 'Keeps relics between death loops.',
+      );
+      if (state.inventory.every((item) => item.id != crystal.id)) {
+        state = state.copyWith(inventory: [...state.inventory, crystal]);
+        _appendLog('> You find a Loop Crystal on the safer path.');
+      }
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'knight_finish') {
+      const ring = Item(
+        id: 'cursed_ring',
+        name: 'Cursed Ring',
+        type: ItemType.relic,
+        value: 6,
+        description: 'High power, but drains HP each battle turn.',
+      );
+      state = state.copyWith(inventory: [...state.inventory, ring]);
+      _appendLog('> You take the Cursed Ring. Power answers, but at a cost.');
       return;
     }
 
@@ -97,11 +144,21 @@ class GameNotifier extends StateNotifier<GameState> {
     if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
 
     final weaponBonus = state.inventory.where((item) => item.type == ItemType.weapon).fold<int>(0, (sum, item) => sum + item.value);
-    final damage = _battleService.calculateDamage(attackerPower: state.player.baseAttack + weaponBonus, defenderPower: enemy.defense);
+    final crit = _battleService.isCriticalHit(state.player.luck);
+    var damage = _battleService.calculateDamage(attackerPower: state.player.baseAttack + weaponBonus, defenderPower: enemy.defense);
+    if (crit) damage = (damage * 1.6).round();
 
     final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
-    state = state.copyWith(enemy: enemy.copyWith(currentHp: remainingEnemyHp));
-    _appendLog('> You strike ${enemy.name} for $damage damage.');
+    final burstCharge = (state.player.soulBurstCharge + 20).clamp(0, 100);
+    state = state.copyWith(
+      enemy: enemy.copyWith(currentHp: remainingEnemyHp),
+      player: state.player.copyWith(soulBurstCharge: burstCharge),
+    );
+    _appendLog(
+      crit
+          ? '> CRITICAL! You strike ${enemy.name} for $damage damage.'
+          : '> You strike ${enemy.name} for $damage damage.',
+    );
 
     if (remainingEnemyHp <= 0) {
       _resolveVictory();
@@ -115,7 +172,12 @@ class GameNotifier extends StateNotifier<GameState> {
   void playerDefend() {
     if (state.enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
     _appendLog('> You brace for impact.');
-    state = state.copyWith(isPlayerTurn: false);
+    state = state.copyWith(
+      isPlayerTurn: false,
+      player: state.player.copyWith(
+        soulBurstCharge: (state.player.soulBurstCharge + 12).clamp(0, 100),
+      ),
+    );
     enemyTurn(playerDefending: true);
   }
 
@@ -137,20 +199,104 @@ class GameNotifier extends StateNotifier<GameState> {
     _consumePotion();
   }
 
+  void castSkill() {
+    final enemy = state.enemy;
+    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (state.player.currentSoul < 12) {
+      _appendLog('> Not enough SOUL to cast.');
+      return;
+    }
+
+    final magicAttack = state.player.baseAttack + 8 + (state.player.level * 2);
+    var damage = _battleService.calculateDamage(
+      attackerPower: magicAttack,
+      defenderPower: (enemy.defense * 0.7).round(),
+    );
+    if (enemy.weakToMagic) damage = (damage * 1.4).round();
+
+    final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
+    final nextSoul = (state.player.currentSoul - 12).clamp(0, state.player.maxSoul);
+    final burstCharge = (state.player.soulBurstCharge + 25).clamp(0, 100);
+    state = state.copyWith(
+      enemy: enemy.copyWith(currentHp: remainingEnemyHp),
+      player: state.player.copyWith(currentSoul: nextSoul, soulBurstCharge: burstCharge),
+    );
+    _appendLog('> Soul Fire hits ${enemy.name} for $damage magic damage.');
+
+    if (remainingEnemyHp <= 0) {
+      _resolveVictory();
+      return;
+    }
+    state = state.copyWith(isPlayerTurn: false);
+    enemyTurn();
+  }
+
+  void useSoulBurst() {
+    final enemy = state.enemy;
+    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (state.player.soulBurstCharge < 100) {
+      _appendLog('> Soul Burst is not fully charged.');
+      return;
+    }
+
+    if (state.player.currentHp <= state.player.maxHp ~/ 2) {
+      final healed = (state.player.currentHp + 40).clamp(0, state.player.maxHp);
+      state = state.copyWith(
+        player: state.player.copyWith(currentHp: healed, soulBurstCharge: 0),
+      );
+      _appendLog('> Soul Burst surges inward. You recover 40 HP.');
+      state = state.copyWith(isPlayerTurn: false);
+      enemyTurn();
+      return;
+    }
+
+    final damage = _battleService.calculateDamage(
+      attackerPower: state.player.baseAttack + 40,
+      defenderPower: (enemy.defense * 0.5).round(),
+    );
+    final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
+    state = state.copyWith(
+      enemy: enemy.copyWith(currentHp: remainingEnemyHp),
+      player: state.player.copyWith(soulBurstCharge: 0),
+    );
+    _appendLog('> Soul Burst tears through ${enemy.name} for $damage damage.');
+
+    if (remainingEnemyHp <= 0) {
+      _resolveVictory();
+      return;
+    }
+    state = state.copyWith(isPlayerTurn: false);
+    enemyTurn();
+  }
+
   void usePotionOutsideBattle() => _consumePotion();
 
   void enemyTurn({bool playerDefending = false}) {
     final enemy = state.enemy;
     if (enemy == null || state.phase != GamePhase.battle) return;
 
-    final damage = _battleService.calculateDamage(attackerPower: enemy.attack, defenderPower: state.player.baseDefense, defending: playerDefending);
-    final hp = (state.player.currentHp - damage).clamp(0, state.player.maxHp);
-    state = state.copyWith(player: state.player.copyWith(currentHp: hp));
+    var damage = _battleService.calculateDamage(attackerPower: enemy.attack, defenderPower: state.player.baseDefense, defending: playerDefending);
+    if (enemy.id == 'time_devourer' && DateTime.now().millisecond % 2 == 0) {
+      damage = (damage * 1.35).round();
+      _appendLog('> Time fractures. The attack pattern resets unexpectedly!');
+    }
+    var hp = (state.player.currentHp - damage).clamp(0, state.player.maxHp);
+    if (enemy.drainsHp) {
+      final healedEnemy = (enemy.currentHp + (damage ~/ 2)).clamp(0, enemy.maxHp);
+      state = state.copyWith(enemy: enemy.copyWith(currentHp: healedEnemy));
+      _appendLog('> ${enemy.name} drains your life.');
+    }
+    if (state.inventory.any((i) => i.id == 'cursed_ring')) {
+      hp = (hp - 2).clamp(0, state.player.maxHp);
+      _appendLog('> The Cursed Ring drains 2 HP.');
+    }
+
+    final nextSoul = (state.player.currentSoul + 6).clamp(0, state.player.maxSoul);
+    state = state.copyWith(player: state.player.copyWith(currentHp: hp, currentSoul: nextSoul));
     _appendLog('> ${enemy.name} hits you for $damage damage.');
 
     if (hp <= 0) {
-      state = state.copyWith(phase: GamePhase.gameOver);
-      _appendLog('> Signal lost. You were defeated in the rift.');
+      _applyDeathLoop();
       _playBeep();
       _autoSave();
       return;
@@ -189,9 +335,9 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void _consumePotion() {
-    final potionIndex = state.inventory.indexWhere((item) => item.type == ItemType.potion);
+    final potionIndex = state.inventory.indexWhere((item) => item.type == ItemType.consumable);
     if (potionIndex < 0) {
-      _appendLog('> No potion available.');
+      _appendLog('> No consumable available.');
       return;
     }
 
@@ -201,6 +347,26 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(player: state.player.copyWith(currentHp: healed), inventory: nextInventory);
     _appendLog('> You use ${potion.name} and recover ${potion.value} HP.');
     _autoSave();
+  }
+
+  void _applyDeathLoop() {
+    final nextLoop = state.loopCount + 1;
+    final keepsLoopCrystal = state.inventory.any((item) => item.id == 'loop_crystal');
+    final persistentItems = keepsLoopCrystal
+        ? state.inventory.where((i) => i.type == ItemType.relic).toList()
+        : <Item>[];
+    final reset = GameState.initial();
+    state = reset.copyWith(
+      loopCount: nextLoop,
+      riftLevel: (1 + (nextLoop ~/ 2)).clamp(1, 99),
+      storyBeat: state.storyBeat + 1,
+      inventory: [...reset.inventory, ...persistentItems],
+      log: [
+        ...state.log,
+        '> You fall... then wake again.',
+        '> Loop #$nextLoop begins. NPCs whisper fragments of your past life.',
+      ],
+    );
   }
 
   void _appendLog(String message) {

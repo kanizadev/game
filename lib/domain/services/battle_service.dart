@@ -11,5 +11,10 @@ class BattleService {
     return raw.clamp(1, 999);
   }
 
+  bool isCriticalHit(int luck) {
+    final chance = (4 + (luck ~/ 3)).clamp(4, 30);
+    return _random.nextInt(100) < chance;
+  }
+
   bool tryRunAway() => _random.nextInt(100) < 45;
 }

@@ -11,9 +11,10 @@ class CharacterStatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final player = ref.watch(gameProvider).player;
+    final state = ref.watch(gameProvider);
+    final player = state.player;
     return Scaffold(
-      appBar: AppBar(title: const Text('Character Stats')),
+      appBar: AppBar(title: const Text('Person Profile')),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -24,16 +25,72 @@ class CharacterStatsScreen extends ConsumerWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
+          child: ListView(
             children: [
-              StatRow(label: 'Name', value: player.name),
-              StatRow(label: 'Level', value: '${player.level}'),
-              StatRow(label: 'HP', value: '${player.currentHp} / ${player.maxHp}'),
-              StatRow(label: 'XP', value: '${player.xp}'),
-              StatRow(label: 'Next Level', value: '${LevelService.xpForNextLevel(player.level)} XP'),
-              StatRow(label: 'Gold', value: '${player.gold}'),
-              StatRow(label: 'Attack', value: '${player.baseAttack}'),
-              StatRow(label: 'Defense', value: '${player.baseDefense}'),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF111827), Color(0xFF1F2937)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 34,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      child: const Icon(Icons.person, size: 38),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(player.name, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Bound Soul • Loop ${state.loopCount}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '"Die, learn, return... break the cycle."',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      StatRow(label: 'Level', value: '${player.level}'),
+                      StatRow(label: 'XP', value: '${player.xp}'),
+                      StatRow(label: 'Next Level', value: '${LevelService.xpForNextLevel(player.level)} XP'),
+                      StatRow(label: 'Gold', value: '${player.gold}'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      StatRow(label: 'HP', value: '${player.currentHp} / ${player.maxHp}'),
+                      StatRow(label: 'SOUL', value: '${player.currentSoul} / ${player.maxSoul}'),
+                      StatRow(label: 'Attack', value: '${player.baseAttack}'),
+                      StatRow(label: 'Defense', value: '${player.baseDefense}'),
+                      StatRow(label: 'Luck', value: '${player.luck}'),
+                      StatRow(label: 'Soul Burst', value: '${player.soulBurstCharge}%'),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),

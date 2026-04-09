@@ -25,23 +25,32 @@ class GameState {
     required this.storyBeat,
     required this.day,
     required this.riftLevel,
+    required this.loopCount,
   });
 
   factory GameState.initial() => GameState(
         player: Player.initial(),
         inventory: const [
-          Item(id: 'rust_blade', name: 'Rust Blade', type: ItemType.weapon, value: 4, description: 'Old sword. Adds +4 attack.'),
-          Item(id: 'small_potion', name: 'Small Potion', type: ItemType.potion, value: 25, description: 'Restores 25 HP.'),
+          Item(id: 'rusty_blade', name: 'Rusty Blade', type: ItemType.weapon, value: 4, description: 'Starter blade. Adds +4 attack.'),
+          Item(id: 'minor_potion', name: 'Minor Potion', type: ItemType.consumable, value: 20, description: 'Restores 20 HP.'),
+          Item(id: 'cloth_armor', name: 'Cloth Armor', type: ItemType.armor, value: 2, description: 'Basic defense +2.'),
         ],
-        log: const ['> Boot complete. Welcome, Warden.'],
+        log: const [
+          '> The Keeper whispers: "Die, learn, return... break the cycle."',
+        ],
         phase: GamePhase.exploring,
         enemy: null,
-        choices: const [StoryChoice(id: 'scout', text: 'Scout the ruins'), StoryChoice(id: 'rest', text: 'Rest by the fire'), StoryChoice(id: 'merchant', text: 'Visit a traveling merchant')],
+        choices: const [
+          StoryChoice(id: 'forward', text: 'Advance deeper into the Hollow Realm'),
+          StoryChoice(id: 'rest', text: 'Meditate with The Keeper\'s echo'),
+          StoryChoice(id: 'forage', text: 'Search ruins for supplies'),
+        ],
         isPlayerTurn: true,
         soundEnabled: false,
         storyBeat: 0,
         day: 1,
         riftLevel: 1,
+        loopCount: 0,
       );
 
   final Player player;
@@ -55,6 +64,7 @@ class GameState {
   final int storyBeat;
   final int day;
   final int riftLevel;
+  final int loopCount;
 
   GameState copyWith({
     Player? player,
@@ -68,6 +78,7 @@ class GameState {
     int? storyBeat,
     int? day,
     int? riftLevel,
+    int? loopCount,
     bool clearEnemy = false,
   }) =>
       GameState(
@@ -82,6 +93,7 @@ class GameState {
         storyBeat: storyBeat ?? this.storyBeat,
         day: day ?? this.day,
         riftLevel: riftLevel ?? this.riftLevel,
+        loopCount: loopCount ?? this.loopCount,
       );
 
   Map<String, dynamic> toJson() => {
@@ -96,6 +108,7 @@ class GameState {
         'storyBeat': storyBeat,
         'day': day,
         'riftLevel': riftLevel,
+        'loopCount': loopCount,
       };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -110,5 +123,6 @@ class GameState {
         storyBeat: json['storyBeat'] as int,
         day: (json['day'] as int?) ?? 1,
         riftLevel: (json['riftLevel'] as int?) ?? 1,
+        loopCount: (json['loopCount'] as int?) ?? 0,
       );
 }

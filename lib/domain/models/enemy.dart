@@ -1,27 +1,78 @@
+enum EnemyTier { common, elite, boss }
+
 class Enemy {
-  const Enemy({required this.id, required this.name, required this.maxHp, required this.currentHp, required this.attack, required this.defense, required this.xpReward, required this.goldReward});
+  const Enemy({
+    required this.id,
+    required this.name,
+    required this.tier,
+    required this.maxHp,
+    required this.currentHp,
+    required this.attack,
+    required this.defense,
+    required this.xpReward,
+    required this.goldReward,
+    this.weakToMagic = false,
+    this.drainsHp = false,
+    this.mirrorStats = false,
+  });
 
   final String id;
   final String name;
+  final EnemyTier tier;
   final int maxHp;
   final int currentHp;
   final int attack;
   final int defense;
   final int xpReward;
   final int goldReward;
+  final bool weakToMagic;
+  final bool drainsHp;
+  final bool mirrorStats;
 
-  Enemy copyWith({int? currentHp}) => Enemy(id: id, name: name, maxHp: maxHp, currentHp: currentHp ?? this.currentHp, attack: attack, defense: defense, xpReward: xpReward, goldReward: goldReward);
+  Enemy copyWith({int? currentHp, int? attack, int? defense}) => Enemy(
+        id: id,
+        name: name,
+        tier: tier,
+        maxHp: maxHp,
+        currentHp: currentHp ?? this.currentHp,
+        attack: attack ?? this.attack,
+        defense: defense ?? this.defense,
+        xpReward: xpReward,
+        goldReward: goldReward,
+        weakToMagic: weakToMagic,
+        drainsHp: drainsHp,
+        mirrorStats: mirrorStats,
+      );
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'maxHp': maxHp, 'currentHp': currentHp, 'attack': attack, 'defense': defense, 'xpReward': xpReward, 'goldReward': goldReward};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'tier': tier.name,
+        'maxHp': maxHp,
+        'currentHp': currentHp,
+        'attack': attack,
+        'defense': defense,
+        'xpReward': xpReward,
+        'goldReward': goldReward,
+        'weakToMagic': weakToMagic,
+        'drainsHp': drainsHp,
+        'mirrorStats': mirrorStats,
+      };
 
   factory Enemy.fromJson(Map<String, dynamic> json) => Enemy(
         id: json['id'] as String,
         name: json['name'] as String,
+        tier: EnemyTier.values.firstWhere(
+          (e) => e.name == (json['tier'] as String? ?? 'common'),
+        ),
         maxHp: json['maxHp'] as int,
         currentHp: json['currentHp'] as int,
         attack: json['attack'] as int,
         defense: json['defense'] as int,
         xpReward: json['xpReward'] as int,
         goldReward: json['goldReward'] as int,
+        weakToMagic: (json['weakToMagic'] as bool?) ?? false,
+        drainsHp: (json['drainsHp'] as bool?) ?? false,
+        mirrorStats: (json['mirrorStats'] as bool?) ?? false,
       );
 }

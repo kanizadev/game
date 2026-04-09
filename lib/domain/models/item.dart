@@ -1,4 +1,4 @@
-enum ItemType { weapon, potion }
+enum ItemType { weapon, consumable, armor, relic }
 
 class Item {
   const Item({required this.id, required this.name, required this.type, required this.value, required this.description});

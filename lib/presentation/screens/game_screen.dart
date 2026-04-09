@@ -51,7 +51,16 @@ class GameScreen extends ConsumerWidget {
               Expanded(child: TerminalLog(log: state.log)),
               const SizedBox(height: 12),
               if (state.phase == GamePhase.battle)
-                ActionPanel(enabled: state.isPlayerTurn, onAttack: notifier.playerAttack, onDefend: notifier.playerDefend, onItem: notifier.usePotionInBattle, onRun: notifier.playerRun)
+                ActionPanel(
+                  enabled: state.isPlayerTurn,
+                  soulBurstReady: state.player.soulBurstCharge >= 100,
+                  onAttack: notifier.playerAttack,
+                  onDefend: notifier.playerDefend,
+                  onItem: notifier.usePotionInBattle,
+                  onSkill: notifier.castSkill,
+                  onSoulBurst: notifier.useSoulBurst,
+                  onRun: notifier.playerRun,
+                )
               else if (state.phase == GamePhase.gameOver)
                 SizedBox(
                   width: double.infinity,
@@ -99,9 +108,10 @@ class _TopHud extends StatelessWidget {
           const Text('SESSION HUD', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.8)),
           const SizedBox(height: 6),
           Text(
-            'Day ${state.day} | Rift ${state.riftLevel} | HP ${state.player.currentHp}/${state.player.maxHp} | '
-            'LVL ${state.player.level} | XP ${state.player.xp} | Gold ${state.player.gold}',
+            'Loop ${state.loopCount} | Day ${state.day} | Rift ${state.riftLevel} | HP ${state.player.currentHp}/${state.player.maxHp} | '
+            'SOUL ${state.player.currentSoul}/${state.player.maxSoul} | Burst ${state.player.soulBurstCharge}%',
           ),
+          Text('LVL ${state.player.level} | XP ${state.player.xp} | Gold ${state.player.gold} | LUCK ${state.player.luck}'),
           if (enemy != null) Text('Enemy: ${enemy.name} (${enemy.currentHp}/${enemy.maxHp} HP)'),
         ],
       ),
