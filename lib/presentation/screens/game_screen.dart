@@ -86,58 +86,54 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TopHud(state: state),
-                  Expanded(child: TerminalLog(log: state.log)),
-                  if (state.phase == GamePhase.battle)
-                    ActionPanel(
-                      enabled: state.isPlayerTurn,
-                      onAttack: notifier.playerAttack,
-                      onDefend: notifier.playerDefend,
-                      onItem: notifier.usePotionInBattle,
-                      onSkill: notifier.castSkill,
-                    )
-                  else if (state.phase == GamePhase.gameOver)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                        icon: const FaIcon(FontAwesomeIcons.house, size: 16),
-                        label: const Text('Return to Home'),
-                      ),
-                    )
-                  else
-                    Container(
-                      constraints: const BoxConstraints(minHeight: 120, maxHeight: 160),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xEE070C0A),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                        border: Border.all(color: const Color(0xFF1F5A41)),
-                      ),
-                      child: SingleChildScrollView(
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            ...state.choices.map(
-                              (choice) => ElevatedButton(
-                                onPressed: () => notifier.chooseStoryOption(choice.id),
-                                child: Text(choice.text),
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: notifier.advanceTurnDay,
-                              icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 16),
-                              label: const Text('Advance Day'),
-                            ),
-                          ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth > 900;
+                  final battleControls = state.phase == GamePhase.battle
+                      ? ActionPanel(
+                          enabled: state.isPlayerTurn,
+                          soulBurstReady: state.player.soulBurstCharge >= 100,
+                          onAttack: notifier.playerAttack,
+                          onDefend: notifier.playerDefend,
+                          onItem: notifier.usePotionInBattle,
+                          onSkill: notifier.castSkill,
+                          onRun: notifier.playerRun,
+                          onSoulBurst: notifier.useSoulBurst,
+                        )
+                      : _buildExplorationPanel(state, notifier, context);
+
+                  if (wide) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _TopHud(state: state),
+                        const SizedBox(height: 8),
+                        _TurnBanner(state: state),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(flex: 3, child: TerminalLog(log: state.log)),
+                              const SizedBox(width: 12),
+                              Expanded(flex: 2, child: battleControls),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                ],
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _TopHud(state: state),
+                      const SizedBox(height: 8),
+                      _TurnBanner(state: state),
+                      Expanded(child: TerminalLog(log: state.log)),
+                      battleControls,
+                    ],
+                  );
+                },
               ),
             ),
             Positioned(
@@ -307,6 +303,87 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ItemType.relic => FontAwesomeIcons.gem,
         ItemType.consumable => FontAwesomeIcons.flask,
       };
+
+  Widget _buildExplorationPanel(
+    GameState state,
+    GameNotifier notifier,
+    BuildContext context,
+  ) {
+    if (state.phase == GamePhase.gameOver) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+          icon: const FaIcon(FontAwesomeIcons.house, size: 16),
+          label: const Text('Return to Home'),
+        ),
+      );
+    }
+    return Container(
+      constraints: const BoxConstraints(minHeight: 120, maxHeight: 170),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xEE070C0A),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+        border: Border.all(color: const Color(0xFF1F5A41)),
+      ),
+      child: SingleChildScrollView(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...state.choices.map(
+              (choice) => ElevatedButton(
+                onPressed: () => notifier.chooseStoryOption(choice.id),
+                child: Text(choice.text),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: notifier.advanceTurnDay,
+              icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 16),
+              label: const Text('Advance Day'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TurnBanner extends StatelessWidget {
+  const _TurnBanner({required this.state});
+
+  final GameState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = state.phase != GamePhase.battle
+        ? 'Exploration'
+        : state.isPlayerTurn
+            ? 'Your Turn'
+            : 'Enemy Turn (${state.enemy?.intent ?? 'attack'})';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xAA0A140E),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF1F5A41)),
+      ),
+      child: Row(
+        children: [
+          const FaIcon(FontAwesomeIcons.waveSquare, size: 12, color: Color(0xFF73FFD9)),
+          const SizedBox(width: 8),
+          Text(text, style: const TextStyle(color: Color(0xFFB7FFD8), fontSize: 12)),
+          const Spacer(),
+          Text(
+            'Combo x${state.comboChain}',
+            style: const TextStyle(color: Color(0xFF73FFD9), fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TopHud extends StatelessWidget {

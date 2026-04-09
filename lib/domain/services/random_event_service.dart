@@ -52,15 +52,34 @@ class RandomEventService {
       weakToMagic: t.$8,
       drainsHp: t.$9,
       mirrorStats: t.$10,
+      aiProfile: _aiProfileFor(t.$1, t.$2),
     );
   }
 
-  List<StoryChoice> nextChoices(int storyBeat) {
+  List<StoryChoice> nextChoices(
+    int storyBeat, {
+    List<String> memoryFlags = const [],
+    int keeperAlignment = 0,
+  }) {
+    if (memoryFlags.contains('keeper_mark')) {
+      return const [
+        StoryChoice(id: 'keeper_bargain', text: 'Accept The Keeper\'s bargain'),
+        StoryChoice(id: 'keeper_resist', text: 'Resist and keep your will'),
+        StoryChoice(id: 'forward', text: 'Advance deeper into the Hollow Realm'),
+      ];
+    }
     if (storyBeat % 4 == 0) {
       return const [
         StoryChoice(id: 'knight_help', text: 'Help the wounded knight'),
         StoryChoice(id: 'knight_ignore', text: 'Ignore and move on'),
         StoryChoice(id: 'knight_finish', text: 'Finish him and take his blade'),
+      ];
+    }
+    if (keeperAlignment <= -2) {
+      return const [
+        StoryChoice(id: 'rest', text: 'Meditate with The Keeper\'s echo'),
+        StoryChoice(id: 'forage', text: 'Search ruins for supplies'),
+        StoryChoice(id: 'shadow_offer', text: 'Accept a shadow-forged boon'),
       ];
     }
     return const [
@@ -87,8 +106,22 @@ class RandomEventService {
         return 'You choose the safer road and avoid his curse.';
       case 'knight_finish':
         return 'His final breath binds a cursed relic to your fate.';
+      case 'keeper_bargain':
+        return 'The Keeper etches a cold sigil across your soul.';
+      case 'keeper_resist':
+        return 'You refuse the whisper and steady your pulse.';
+      case 'shadow_offer':
+        return 'Dark echoes grant power, but demand a hidden toll.';
       default:
         return 'You move carefully through fractured time.';
     }
+  }
+
+  String _aiProfileFor(String enemyName, EnemyTier tier) {
+    if (enemyName == 'Soul Leech') return 'siphon';
+    if (enemyName == 'Mirror Shade') return 'mirror';
+    if (tier == EnemyTier.boss) return 'boss_pattern';
+    if (tier == EnemyTier.elite) return 'elite_pattern';
+    return 'aggressive';
   }
 }

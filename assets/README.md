@@ -7,7 +7,6 @@ This file lists what assets to add for **Echoes of the Hollow Realm** and how to
 - `assets/images/` - background and scene images
 - `assets/icons/` - app and UI icons
 - `assets/enemies/` - enemy sprites and portraits
-- `assets/ui/` - HUD panels, frames, and terminal overlays
 - `assets/sounds/sfx/` - short sound effects
 - `assets/sounds/bgm/` - looping music
 - `assets/fonts/` - pixel fonts (`PixelifySans.ttf` is already configured)
@@ -24,7 +23,6 @@ Examples:
 - `enemy_hollow_rat_common.png`
 - `enemy_void_knight_elite.png`
 - `bg_ruins_night.png`
-- `ui_panel_terminal.png`
 - `sfx_ui_tick.wav`
 - `bgm_battle_loop.mp3`
 
@@ -50,31 +48,7 @@ Examples:
 - [ ] `enemy_abyss_keeper_boss.png`
 - [ ] optional portraits: `enemy_<name>_portrait.png`
 
-### 3) UI Skin (`assets/ui/`)
-- [ ] `ui_panel_terminal.png`
-- [ ] `ui_scanline_overlay.png`
-- [ ] `ui_hp_bar_frame.png`
-- [ ] `ui_soul_bar_frame.png`
-- [ ] `ui_dialog_frame.png`
-- [ ] `ui_button_terminal.png`
-
-#### UI Asset Sizes and Targets
-
-| Asset | Source Size | Suggested In-Game Target |
-| --- | --- | --- |
-| `ui_panel_terminal.png` | `1536x1024` | Main HUD/log panels (`~90-100%` width, `120-260px` height) |
-| `ui_scanline_overlay.png` | `1024x1536` | Full-screen overlay with low opacity (`0.10-0.20`) |
-| `ui_button_terminal.png` | `1024x576` | Action buttons (`~140-220px` width, `36-52px` height) |
-| `ui_dialog_frame.png` | `1024x576` | Modal/bottom sheet surfaces (`~60-90%` screen width) |
-| `ui_hp_bar_frame.png` | `1024x512` | HP bar frame (`~8-14px` bar height, stretch `BoxFit.fill`) |
-| `ui_soul_bar_frame.png` | `1024x512` | Soul/XP bar frame (`~8-14px` bar height, stretch `BoxFit.fill`) |
-
-Notes:
-- Keep frame-style assets (`*_frame.png`) stretched with `BoxFit.fill`.
-- Keep decorative overlays subtle; prioritize text readability.
-- Prefer consistent aspect behavior per asset type to avoid visual jitter.
-
-### 4) Icons (`assets/icons/`)
+### 3) Icons (`assets/icons/`)
 - [ ] `icon_inventory.png`
 - [ ] `icon_stats.png`
 - [ ] `icon_save.png`
@@ -82,7 +56,7 @@ Notes:
 - [ ] `icon_defend.png`
 - [ ] `icon_skill.png`
 
-### 5) Sound Effects (`assets/sounds/sfx/`)
+### 4) Sound Effects (`assets/sounds/sfx/`)
 - [ ] `ui_tick.wav`
 - [ ] `ui_blip.wav`
 - [ ] `attack_slash.wav`
@@ -93,7 +67,7 @@ Notes:
 - [ ] `levelup_8bit.wav`
 - [ ] `gameover_glitch.wav`
 
-### 6) Music (`assets/sounds/bgm/`)
+### 5) Music (`assets/sounds/bgm/`)
 - [ ] `exploration_loop.mp3`
 - [ ] `battle_loop.mp3`
 - [ ] `boss_loop.mp3`

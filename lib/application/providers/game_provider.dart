@@ -5,10 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/local/save_service.dart';
 import '../../domain/models/game_state.dart';
 import '../../domain/models/item.dart';
+import '../../domain/models/player.dart';
+import '../../domain/models/status_effect.dart';
 import '../../domain/services/battle_service.dart';
+import '../../domain/services/combat_engine.dart';
+import '../../domain/services/enemy_ai_service.dart';
 import '../../domain/services/level_service.dart';
 import '../../domain/services/random_event_service.dart';
 import '../../domain/services/sound_service.dart';
+import '../../domain/services/status_effect_service.dart';
 
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) => GameNotifier());
 
@@ -17,12 +22,18 @@ class GameNotifier extends StateNotifier<GameState> {
       : _saveService = SaveService(),
         _randomEventService = RandomEventService(),
         _battleService = BattleService(),
+        _combatEngine = CombatEngine(
+          battleService: BattleService(),
+          statusEffectService: StatusEffectService(),
+          enemyAiService: EnemyAiService(),
+        ),
         _soundService = SoundService(),
         super(GameState.initial());
 
   final SaveService _saveService;
   final RandomEventService _randomEventService;
   final BattleService _battleService;
+  final CombatEngine _combatEngine;
   final SoundService _soundService;
 
   Future<void> startNewGame() async {
@@ -76,7 +87,15 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
-    state = state.copyWith(day: nextDay, choices: _randomEventService.nextChoices(state.storyBeat + 1), storyBeat: state.storyBeat + 1);
+    state = state.copyWith(
+      day: nextDay,
+      choices: _randomEventService.nextChoices(
+        state.storyBeat + 1,
+        memoryFlags: state.memoryFlags,
+        keeperAlignment: state.keeperAlignment,
+      ),
+      storyBeat: state.storyBeat + 1,
+    );
     _autoSave();
   }
 
@@ -109,7 +128,10 @@ class GameNotifier extends StateNotifier<GameState> {
 
     if (choiceId == 'knight_help') {
       final player = state.player.copyWith(luck: state.player.luck + 1);
-      state = state.copyWith(player: player);
+      state = state.copyWith(
+        player: player,
+        keeperAlignment: state.keeperAlignment + 1,
+      );
       _appendLog('> The knight grants you an Echo Sigil. +1 LUCK.');
       _autoSave();
       return;
@@ -127,6 +149,10 @@ class GameNotifier extends StateNotifier<GameState> {
         state = state.copyWith(inventory: [...state.inventory, crystal]);
         _appendLog('> You find a Loop Crystal on the safer path.');
       }
+      state = state.copyWith(
+        memoryFlags: {...state.memoryFlags, 'keeper_mark'}.toList(),
+        keeperAlignment: state.keeperAlignment - 1,
+      );
       _autoSave();
       return;
     }
@@ -139,8 +165,56 @@ class GameNotifier extends StateNotifier<GameState> {
         value: 6,
         description: 'High power, but drains HP each battle turn.',
       );
-      state = state.copyWith(inventory: [...state.inventory, ring]);
+      state = state.copyWith(
+        inventory: [...state.inventory, ring],
+        keeperAlignment: state.keeperAlignment - 2,
+      );
       _appendLog('> You take the Cursed Ring. Power answers, but at a cost.');
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'keeper_bargain') {
+      final player = state.player.copyWith(
+        baseAttack: state.player.baseAttack + 2,
+        maxSoul: state.player.maxSoul + 4,
+        currentSoul: (state.player.currentSoul + 8).clamp(0, state.player.maxSoul + 4),
+      );
+      state = state.copyWith(
+        player: player,
+        keeperAlignment: state.keeperAlignment - 2,
+        memoryFlags: {...state.memoryFlags, 'keeper_pact'}.toList(),
+      );
+      _appendLog('> Keeper Pact formed: +2 ATK, +4 max SOUL.');
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'keeper_resist') {
+      state = state.copyWith(
+        keeperAlignment: state.keeperAlignment + 1,
+        memoryFlags: {...state.memoryFlags, 'keeper_resisted'}.toList(),
+      );
+      _appendLog('> You hold your will. The Keeper retreats.');
+      _autoSave();
+      return;
+    }
+
+    if (choiceId == 'shadow_offer') {
+      state = state.copyWith(
+        player: state.player.copyWith(baseAttack: state.player.baseAttack + 1),
+        playerEffects: [
+          ...state.playerEffects,
+          const StatusEffect(
+            id: 'shadow_regen',
+            type: StatusEffectType.regen,
+            potency: 2,
+            remainingTurns: 3,
+            source: 'shadow_offer',
+          ),
+        ],
+      );
+      _appendLog('> Shadow boon: +1 ATK and temporary regen.');
       return;
     }
 
@@ -154,7 +228,14 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
-    state = state.copyWith(choices: _randomEventService.nextChoices(state.storyBeat + 1), storyBeat: state.storyBeat + 1);
+    state = state.copyWith(
+      choices: _randomEventService.nextChoices(
+        state.storyBeat + 1,
+        memoryFlags: state.memoryFlags,
+        keeperAlignment: state.keeperAlignment,
+      ),
+      storyBeat: state.storyBeat + 1,
+    );
     _autoSave();
   }
 
@@ -162,30 +243,43 @@ class GameNotifier extends StateNotifier<GameState> {
     final enemy = state.enemy;
     if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
 
-    final weaponBonus = state.inventory.where((item) => item.type == ItemType.weapon).fold<int>(0, (sum, item) => sum + item.value);
-    final crit = _battleService.isCriticalHit(state.player.luck);
-    var damage = _battleService.calculateDamage(attackerPower: state.player.baseAttack + weaponBonus, defenderPower: enemy.defense);
-    if (crit) damage = (damage * 1.6).round();
-
-    final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
-    final burstCharge = (state.player.soulBurstCharge + 20).clamp(0, 100);
+    final weaponBonus = state.inventory
+        .where((item) => item.type == ItemType.weapon)
+        .fold<int>(0, (sum, item) => sum + item.value);
+    final result = _combatEngine.playerAttack(
+      enemy: enemy,
+      attackerPower: state.player.baseAttack + weaponBonus,
+      playerLuck: state.player.luck,
+      playerHp: state.player.currentHp,
+      playerSoul: state.player.currentSoul,
+      playerBurst: state.player.soulBurstCharge,
+      comboChain: state.comboChain,
+      playerEffects: state.playerEffects,
+      enemyEffects: state.enemyEffects,
+    );
     state = state.copyWith(
-      enemy: enemy.copyWith(currentHp: remainingEnemyHp),
-      player: state.player.copyWith(soulBurstCharge: burstCharge),
+      enemy: result.enemy,
+      player: state.player.copyWith(
+        currentHp: result.playerHp.clamp(0, state.player.maxHp),
+        currentSoul: result.playerSoul.clamp(0, state.player.maxSoul),
+        soulBurstCharge: result.playerBurst,
+      ),
+      comboChain: result.comboChain,
+      lastPlayerAction: result.lastAction,
+      playerEffects: result.playerEffects,
+      enemyEffects: result.enemyEffects,
     );
-    _appendLog(
-      crit
-          ? '> CRITICAL! You strike ${enemy.name} for $damage damage.'
-          : '> You strike ${enemy.name} for $damage damage.',
-    );
-    unawaited(_soundService.playSfx(crit ? SfxType.criticalHit : SfxType.attack));
+    for (final line in result.logs) {
+      _appendLog(line);
+    }
+    unawaited(_soundService.playSfx(SfxType.attack));
 
-    if (remainingEnemyHp <= 0) {
+    if (result.enemy.currentHp <= 0) {
       _resolveVictory();
       return;
     }
 
-    state = state.copyWith(isPlayerTurn: false);
+    state = state.copyWith(isPlayerTurn: false, turnCounter: state.turnCounter + 1);
     enemyTurn();
   }
 
@@ -194,6 +288,19 @@ class GameNotifier extends StateNotifier<GameState> {
     _appendLog('> You brace for impact.');
     state = state.copyWith(
       isPlayerTurn: false,
+      comboChain: 0,
+      lastPlayerAction: 'defend',
+      turnCounter: state.turnCounter + 1,
+      playerEffects: [
+        ...state.playerEffects,
+        const StatusEffect(
+          id: 'defend_shield',
+          type: StatusEffectType.shield,
+          potency: 3,
+          remainingTurns: 1,
+          source: 'defend',
+        ),
+      ],
       player: state.player.copyWith(
         soulBurstCharge: (state.player.soulBurstCharge + 12).clamp(0, 100),
       ),
@@ -210,7 +317,12 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
     _appendLog('> Escape failed. The enemy blocks your path!');
-    state = state.copyWith(isPlayerTurn: false);
+    state = state.copyWith(
+      isPlayerTurn: false,
+      comboChain: 0,
+      lastPlayerAction: 'run',
+      turnCounter: state.turnCounter + 1,
+    );
     enemyTurn();
   }
 
@@ -227,7 +339,8 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
-    final magicAttack = state.player.baseAttack + 8 + (state.player.level * 2);
+    final hasSoulFireMastery = state.player.unlockedSkills.contains('arcanist_soul_fire');
+    final magicAttack = state.player.baseAttack + 8 + (state.player.level * 2) + (hasSoulFireMastery ? 4 : 0);
     var damage = _battleService.calculateDamage(
       attackerPower: magicAttack,
       defenderPower: (enemy.defense * 0.7).round(),
@@ -240,8 +353,22 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(
       enemy: enemy.copyWith(currentHp: remainingEnemyHp),
       player: state.player.copyWith(currentSoul: nextSoul, soulBurstCharge: burstCharge),
+      comboChain: state.comboChain + 1,
+      lastPlayerAction: 'skill',
+      turnCounter: state.turnCounter + 1,
+      enemyEffects: [
+        ...state.enemyEffects,
+        const StatusEffect(
+          id: 'soul_fire_burn',
+          type: StatusEffectType.burn,
+          potency: 3,
+          remainingTurns: 2,
+          source: 'soul_fire',
+        ),
+      ],
     );
     _appendLog('> Soul Fire hits ${enemy.name} for $damage magic damage.');
+    _appendLog('> ${enemy.name} is afflicted with Soul Burn.');
     unawaited(_soundService.playSfx(SfxType.attack));
 
     if (remainingEnemyHp <= 0) {
@@ -264,6 +391,9 @@ class GameNotifier extends StateNotifier<GameState> {
       final healed = (state.player.currentHp + 40).clamp(0, state.player.maxHp);
       state = state.copyWith(
         player: state.player.copyWith(currentHp: healed, soulBurstCharge: 0),
+        comboChain: 0,
+        lastPlayerAction: 'soul_burst_heal',
+        turnCounter: state.turnCounter + 1,
       );
       _appendLog('> Soul Burst surges inward. You recover 40 HP.');
       state = state.copyWith(isPlayerTurn: false);
@@ -271,14 +401,18 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
+    final hasOverdrive = state.player.unlockedSkills.contains('vanguard_overdrive');
     final damage = _battleService.calculateDamage(
-      attackerPower: state.player.baseAttack + 40,
+      attackerPower: state.player.baseAttack + 40 + (hasOverdrive ? 10 : 0),
       defenderPower: (enemy.defense * 0.5).round(),
     );
     final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
     state = state.copyWith(
       enemy: enemy.copyWith(currentHp: remainingEnemyHp),
       player: state.player.copyWith(soulBurstCharge: 0),
+      comboChain: 0,
+      lastPlayerAction: 'soul_burst',
+      turnCounter: state.turnCounter + 1,
     );
     _appendLog('> Soul Burst tears through ${enemy.name} for $damage damage.');
     unawaited(_soundService.playSfx(SfxType.criticalHit));
@@ -297,25 +431,40 @@ class GameNotifier extends StateNotifier<GameState> {
     final enemy = state.enemy;
     if (enemy == null || state.phase != GamePhase.battle) return;
 
-    var damage = _battleService.calculateDamage(attackerPower: enemy.attack, defenderPower: state.player.baseDefense, defending: playerDefending);
-    if (enemy.id == 'time_devourer' && DateTime.now().millisecond % 2 == 0) {
-      damage = (damage * 1.35).round();
-      _appendLog('> Time fractures. The attack pattern resets unexpectedly!');
-    }
-    var hp = (state.player.currentHp - damage).clamp(0, state.player.maxHp);
-    if (enemy.drainsHp) {
-      final healedEnemy = (enemy.currentHp + (damage ~/ 2)).clamp(0, enemy.maxHp);
-      state = state.copyWith(enemy: enemy.copyWith(currentHp: healedEnemy));
-      _appendLog('> ${enemy.name} drains your life.');
-    }
+    final armorBonus = state.inventory
+        .where((i) => i.type == ItemType.armor)
+        .fold<int>(0, (sum, item) => sum + item.value);
+    final result = _combatEngine.enemyTurn(
+      enemy: enemy,
+      turnCounter: state.turnCounter,
+      playerHp: state.player.currentHp,
+      playerMaxHp: state.player.maxHp,
+      playerDefense: state.player.baseDefense + armorBonus,
+      defending: playerDefending,
+      playerSoul: state.player.currentSoul,
+      playerBurst: state.player.soulBurstCharge,
+      playerEffects: state.playerEffects,
+      enemyEffects: state.enemyEffects,
+    );
+    var hp = result.playerHp;
+    var nextEnemy = result.enemy.copyWith(intent: result.intent.name);
+
     if (state.inventory.any((i) => i.id == 'cursed_ring')) {
       hp = (hp - 2).clamp(0, state.player.maxHp);
       _appendLog('> The Cursed Ring drains 2 HP.');
     }
 
-    final nextSoul = (state.player.currentSoul + 6).clamp(0, state.player.maxSoul);
-    state = state.copyWith(player: state.player.copyWith(currentHp: hp, currentSoul: nextSoul));
-    _appendLog('> ${enemy.name} hits you for $damage damage.');
+    for (final line in result.logs) {
+      _appendLog(line);
+    }
+    final nextSoul = result.playerSoul.clamp(0, state.player.maxSoul);
+    state = state.copyWith(
+      enemy: nextEnemy,
+      player: state.player.copyWith(currentHp: hp, currentSoul: nextSoul),
+      comboChain: 0,
+      playerEffects: result.playerEffects,
+      enemyEffects: result.enemyEffects,
+    );
     unawaited(_soundService.playSfx(SfxType.enemyAttack));
 
     if (hp <= 0) {
@@ -334,7 +483,12 @@ class GameNotifier extends StateNotifier<GameState> {
     if (enemy == null) return;
 
     var player = state.player.copyWith(gold: state.player.gold + enemy.goldReward);
+    final hasKeeperPact = state.memoryFlags.contains('keeper_pact');
+    if (hasKeeperPact) {
+      player = player.copyWith(currentSoul: (player.currentSoul + 4).clamp(0, player.maxSoul));
+    }
     player = LevelService.applyXp(player, enemy.xpReward);
+    player = _unlockStarterSkills(player);
     final leveledUp = player.level > state.player.level;
 
     final nextRiftLevel = state.riftLevel + 1;
@@ -345,8 +499,14 @@ class GameNotifier extends StateNotifier<GameState> {
       isPlayerTurn: true,
       riftLevel: nextRiftLevel,
       day: state.day + 1,
-      choices: _randomEventService.nextChoices(state.storyBeat + 1),
+      choices: _randomEventService.nextChoices(
+        state.storyBeat + 1,
+        memoryFlags: state.memoryFlags,
+        keeperAlignment: state.keeperAlignment,
+      ),
       storyBeat: state.storyBeat + 1,
+      playerEffects: const [],
+      enemyEffects: const [],
     );
 
     _appendLog('> ${enemy.name} defeated. +${enemy.xpReward} XP, +${enemy.goldReward} gold.');
@@ -355,6 +515,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _syncBgmToState();
     if (leveledUp) {
       _appendLog('> Level up! You are now level ${player.level}.');
+      _appendLog('> Skill point available: ${player.skillPoints}.');
       unawaited(_soundService.playSfx(SfxType.levelUp));
     }
     _autoSave();
@@ -388,6 +549,8 @@ class GameNotifier extends StateNotifier<GameState> {
       riftLevel: (1 + (nextLoop ~/ 2)).clamp(1, 99),
       storyBeat: state.storyBeat + 1,
       inventory: [...reset.inventory, ...persistentItems],
+      memoryFlags: {...state.memoryFlags, 'died_once', if (nextLoop >= 3) 'loop_hardened'}.toList(),
+      keeperAlignment: state.keeperAlignment,
       log: [
         ...state.log,
         '> You fall... then wake again.',
@@ -431,5 +594,21 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void _autoSave() {
     unawaited(_saveService.save(state));
+  }
+
+  Player _unlockStarterSkills(Player player) {
+    final skills = {...player.unlockedSkills};
+    if (player.level >= 2) {
+      switch (player.classPath.name) {
+        case 'vanguard':
+          skills.add('vanguard_overdrive');
+        case 'arcanist':
+          skills.add('arcanist_soul_fire');
+        case 'shade':
+          skills.add('shade_bleedstep');
+      }
+    }
+    if (skills.length == player.unlockedSkills.length) return player;
+    return player.copyWith(unlockedSkills: skills.toList());
   }
 }

@@ -8,17 +8,23 @@ class ActionPanel extends StatelessWidget {
     required this.onDefend,
     required this.onItem,
     required this.onSkill,
+    required this.onRun,
+    required this.onSoulBurst,
     required this.enabled,
+    required this.soulBurstReady,
   });
   final VoidCallback onAttack;
   final VoidCallback onDefend;
   final VoidCallback onItem;
   final VoidCallback onSkill;
+  final VoidCallback onRun;
+  final VoidCallback onSoulBurst;
   final bool enabled;
+  final bool soulBurstReady;
 
   @override
   Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minHeight: 120, maxHeight: 150),
+        constraints: const BoxConstraints(minHeight: 150, maxHeight: 190),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xEE070C0A),
@@ -27,8 +33,8 @@ class ActionPanel extends StatelessWidget {
         ),
         child: GridView.count(
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          childAspectRatio: 2.8,
+          crossAxisCount: 3,
+          childAspectRatio: 2.2,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           children: [
@@ -36,6 +42,13 @@ class ActionPanel extends StatelessWidget {
             _ActionButton(label: 'Defend', icon: FontAwesomeIcons.shieldHalved, enabled: enabled, onPressed: onDefend),
             _ActionButton(label: 'Skill', icon: FontAwesomeIcons.burst, enabled: enabled, onPressed: onSkill),
             _ActionButton(label: 'Item', icon: FontAwesomeIcons.flask, enabled: enabled, onPressed: onItem),
+            _ActionButton(label: 'Run', icon: FontAwesomeIcons.personRunning, enabled: enabled, onPressed: onRun),
+            _ActionButton(
+              label: 'Burst',
+              icon: FontAwesomeIcons.bolt,
+              enabled: enabled && soulBurstReady,
+              onPressed: onSoulBurst,
+            ),
           ],
         ),
       );

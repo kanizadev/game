@@ -14,6 +14,8 @@ class Enemy {
     this.weakToMagic = false,
     this.drainsHp = false,
     this.mirrorStats = false,
+    this.aiProfile = 'aggressive',
+    this.intent = 'attack',
   });
 
   final String id;
@@ -28,8 +30,10 @@ class Enemy {
   final bool weakToMagic;
   final bool drainsHp;
   final bool mirrorStats;
+  final String aiProfile;
+  final String intent;
 
-  Enemy copyWith({int? currentHp, int? attack, int? defense}) => Enemy(
+  Enemy copyWith({int? currentHp, int? attack, int? defense, String? intent}) => Enemy(
         id: id,
         name: name,
         tier: tier,
@@ -42,6 +46,8 @@ class Enemy {
         weakToMagic: weakToMagic,
         drainsHp: drainsHp,
         mirrorStats: mirrorStats,
+        aiProfile: aiProfile,
+        intent: intent ?? this.intent,
       );
 
   Map<String, dynamic> toJson() => {
@@ -57,6 +63,8 @@ class Enemy {
         'weakToMagic': weakToMagic,
         'drainsHp': drainsHp,
         'mirrorStats': mirrorStats,
+        'aiProfile': aiProfile,
+        'intent': intent,
       };
 
   factory Enemy.fromJson(Map<String, dynamic> json) => Enemy(
@@ -74,5 +82,7 @@ class Enemy {
         weakToMagic: (json['weakToMagic'] as bool?) ?? false,
         drainsHp: (json['drainsHp'] as bool?) ?? false,
         mirrorStats: (json['mirrorStats'] as bool?) ?? false,
+        aiProfile: (json['aiProfile'] as String?) ?? 'aggressive',
+        intent: (json['intent'] as String?) ?? 'attack',
       );
 }

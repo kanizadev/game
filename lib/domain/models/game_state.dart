@@ -1,6 +1,7 @@
 import 'enemy.dart';
 import 'item.dart';
 import 'player.dart';
+import 'status_effect.dart';
 
 enum GamePhase { exploring, battle, gameOver }
 
@@ -26,6 +27,14 @@ class GameState {
     required this.day,
     required this.riftLevel,
     required this.loopCount,
+    required this.schemaVersion,
+    required this.turnCounter,
+    required this.comboChain,
+    required this.lastPlayerAction,
+    required this.playerEffects,
+    required this.enemyEffects,
+    required this.memoryFlags,
+    required this.keeperAlignment,
   });
 
   factory GameState.initial() => GameState(
@@ -51,6 +60,14 @@ class GameState {
         day: 1,
         riftLevel: 1,
         loopCount: 0,
+        schemaVersion: 2,
+        turnCounter: 0,
+        comboChain: 0,
+        lastPlayerAction: null,
+        playerEffects: const [],
+        enemyEffects: const [],
+        memoryFlags: const [],
+        keeperAlignment: 0,
       );
 
   final Player player;
@@ -65,6 +82,14 @@ class GameState {
   final int day;
   final int riftLevel;
   final int loopCount;
+  final int schemaVersion;
+  final int turnCounter;
+  final int comboChain;
+  final String? lastPlayerAction;
+  final List<StatusEffect> playerEffects;
+  final List<StatusEffect> enemyEffects;
+  final List<String> memoryFlags;
+  final int keeperAlignment;
 
   GameState copyWith({
     Player? player,
@@ -79,6 +104,14 @@ class GameState {
     int? day,
     int? riftLevel,
     int? loopCount,
+    int? schemaVersion,
+    int? turnCounter,
+    int? comboChain,
+    String? lastPlayerAction,
+    List<StatusEffect>? playerEffects,
+    List<StatusEffect>? enemyEffects,
+    List<String>? memoryFlags,
+    int? keeperAlignment,
     bool clearEnemy = false,
   }) =>
       GameState(
@@ -94,6 +127,14 @@ class GameState {
         day: day ?? this.day,
         riftLevel: riftLevel ?? this.riftLevel,
         loopCount: loopCount ?? this.loopCount,
+        schemaVersion: schemaVersion ?? this.schemaVersion,
+        turnCounter: turnCounter ?? this.turnCounter,
+        comboChain: comboChain ?? this.comboChain,
+        lastPlayerAction: lastPlayerAction ?? this.lastPlayerAction,
+        playerEffects: playerEffects ?? this.playerEffects,
+        enemyEffects: enemyEffects ?? this.enemyEffects,
+        memoryFlags: memoryFlags ?? this.memoryFlags,
+        keeperAlignment: keeperAlignment ?? this.keeperAlignment,
       );
 
   Map<String, dynamic> toJson() => {
@@ -109,6 +150,14 @@ class GameState {
         'day': day,
         'riftLevel': riftLevel,
         'loopCount': loopCount,
+        'schemaVersion': schemaVersion,
+        'turnCounter': turnCounter,
+        'comboChain': comboChain,
+        'lastPlayerAction': lastPlayerAction,
+        'playerEffects': playerEffects.map((e) => e.toJson()).toList(),
+        'enemyEffects': enemyEffects.map((e) => e.toJson()).toList(),
+        'memoryFlags': memoryFlags,
+        'keeperAlignment': keeperAlignment,
       };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -124,5 +173,19 @@ class GameState {
         day: (json['day'] as int?) ?? 1,
         riftLevel: (json['riftLevel'] as int?) ?? 1,
         loopCount: (json['loopCount'] as int?) ?? 0,
+        schemaVersion: (json['schemaVersion'] as int?) ?? 1,
+        turnCounter: (json['turnCounter'] as int?) ?? 0,
+        comboChain: (json['comboChain'] as int?) ?? 0,
+        lastPlayerAction: json['lastPlayerAction'] as String?,
+        playerEffects: (json['playerEffects'] as List?)
+                ?.map((e) => StatusEffect.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        enemyEffects: (json['enemyEffects'] as List?)
+                ?.map((e) => StatusEffect.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            const [],
+        memoryFlags: (json['memoryFlags'] as List?)?.map((e) => e as String).toList() ?? const [],
+        keeperAlignment: (json['keeperAlignment'] as int?) ?? 0,
       );
 }

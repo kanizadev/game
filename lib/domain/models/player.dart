@@ -1,3 +1,5 @@
+import 'player_class.dart';
+
 class Player {
   const Player({
     required this.name,
@@ -12,6 +14,9 @@ class Player {
     required this.baseDefense,
     required this.luck,
     required this.soulBurstCharge,
+    required this.classPath,
+    required this.skillPoints,
+    required this.unlockedSkills,
   });
 
   factory Player.initial() => const Player(
@@ -27,6 +32,9 @@ class Player {
         baseDefense: 5,
         luck: 8,
         soulBurstCharge: 0,
+        classPath: PlayerClass.vanguard,
+        skillPoints: 0,
+        unlockedSkills: ['vanguard_combo_core'],
       );
 
   final String name;
@@ -41,6 +49,9 @@ class Player {
   final int baseDefense;
   final int luck;
   final int soulBurstCharge;
+  final PlayerClass classPath;
+  final int skillPoints;
+  final List<String> unlockedSkills;
 
   Player copyWith({
     String? name,
@@ -55,6 +66,9 @@ class Player {
     int? baseDefense,
     int? luck,
     int? soulBurstCharge,
+    PlayerClass? classPath,
+    int? skillPoints,
+    List<String>? unlockedSkills,
   }) =>
       Player(
         name: name ?? this.name,
@@ -69,6 +83,9 @@ class Player {
         baseDefense: baseDefense ?? this.baseDefense,
         luck: luck ?? this.luck,
         soulBurstCharge: soulBurstCharge ?? this.soulBurstCharge,
+        classPath: classPath ?? this.classPath,
+        skillPoints: skillPoints ?? this.skillPoints,
+        unlockedSkills: unlockedSkills ?? this.unlockedSkills,
       );
 
   Map<String, dynamic> toJson() => {
@@ -84,6 +101,9 @@ class Player {
         'baseDefense': baseDefense,
         'luck': luck,
         'soulBurstCharge': soulBurstCharge,
+        'classPath': classPath.name,
+        'skillPoints': skillPoints,
+        'unlockedSkills': unlockedSkills,
       };
 
   factory Player.fromJson(Map<String, dynamic> json) => Player(
@@ -99,5 +119,8 @@ class Player {
         baseDefense: json['baseDefense'] as int,
         luck: (json['luck'] as int?) ?? 8,
         soulBurstCharge: (json['soulBurstCharge'] as int?) ?? 0,
+        classPath: playerClassFromName(json['classPath'] as String?),
+        skillPoints: (json['skillPoints'] as int?) ?? 0,
+        unlockedSkills: (json['unlockedSkills'] as List?)?.map((e) => e as String).toList() ?? const ['vanguard_combo_core'],
       );
 }

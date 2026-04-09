@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../application/providers/game_provider.dart';
+import '../../domain/models/player_class.dart';
 import '../../domain/services/level_service.dart';
 import '../widgets/stat_row.dart';
 
@@ -72,6 +73,8 @@ class CharacterStatsScreen extends ConsumerWidget {
                       StatRow(label: 'XP', value: '${player.xp}'),
                       StatRow(label: 'Next Level', value: '${LevelService.xpForNextLevel(player.level)} XP'),
                       StatRow(label: 'Gold', value: '${player.gold}'),
+                      StatRow(label: 'Class', value: player.classPath.label),
+                      StatRow(label: 'Skill Points', value: '${player.skillPoints}'),
                     ],
                   ),
                 ),
@@ -88,6 +91,7 @@ class CharacterStatsScreen extends ConsumerWidget {
                       StatRow(label: 'Defense', value: '${player.baseDefense}'),
                       StatRow(label: 'Luck', value: '${player.luck}'),
                       StatRow(label: 'Soul Burst', value: '${player.soulBurstCharge}%'),
+                      StatRow(label: 'Unlocked Skills', value: '${player.unlockedSkills.length}'),
                     ],
                   ),
                 ),
