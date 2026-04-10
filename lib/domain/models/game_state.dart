@@ -57,7 +57,7 @@ class GameState {
           StoryChoice(id: 'forage', text: 'Search ruins for supplies'),
         ],
         isPlayerTurn: true,
-        soundEnabled: false,
+        soundEnabled: true,
         storyBeat: 0,
         day: 1,
         riftLevel: 1,

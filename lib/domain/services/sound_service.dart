@@ -45,9 +45,9 @@ class SoundService {
   };
 
   static const Map<BgmType, String> _bgmAssets = {
-    BgmType.exploration: 'assets/sounds/bgm/exploration_loop.mp3',
-    BgmType.battle: 'assets/sounds/bgm/battle_loop.mp3',
-    BgmType.boss: 'assets/sounds/bgm/boss_loop.mp3',
+    BgmType.exploration: 'assets/sounds/bgm/exploration_loop.wav',
+    BgmType.battle: 'assets/sounds/bgm/battle_loop.wav',
+    BgmType.boss: 'assets/sounds/bgm/boss_loop.wav',
   };
 
   Future<void> setEnabled(bool enabled) async {
