@@ -7,12 +7,17 @@ import '../../domain/models/player_class.dart';
 import '../../domain/services/level_service.dart';
 import '../widgets/stat_row.dart';
 
-class CharacterStatsScreen extends ConsumerWidget {
+class CharacterStatsScreen extends ConsumerStatefulWidget {
   const CharacterStatsScreen({super.key});
   static const routeName = '/stats';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CharacterStatsScreen> createState() => _CharacterStatsScreenState();
+}
+
+class _CharacterStatsScreenState extends ConsumerState<CharacterStatsScreen> {
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(gameProvider);
     final player = state.player;
     return Scaffold(
@@ -60,6 +65,12 @@ class CharacterStatsScreen extends ConsumerWidget {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
                     ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => _showProfileEditor(context, player.name, player.classPath),
+                      icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 14),
+                      label: const Text('Create / Edit Profile'),
+                    ),
                   ],
                 ),
               ),
@@ -75,6 +86,11 @@ class CharacterStatsScreen extends ConsumerWidget {
                       StatRow(label: 'Gold', value: '${player.gold}'),
                       StatRow(label: 'Class', value: player.classPath.label),
                       StatRow(label: 'Skill Points', value: '${player.skillPoints}'),
+                      StatRow(label: 'Echo Shards', value: '${state.echoShards}'),
+                      StatRow(
+                        label: 'Memory Echoes',
+                        value: state.unlockedEchoes.isEmpty ? 'None' : state.unlockedEchoes.join(', '),
+                      ),
                     ],
                   ),
                 ),
@@ -101,5 +117,85 @@ class CharacterStatsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showProfileEditor(
+    BuildContext context,
+    String currentName,
+    PlayerClass currentClass,
+  ) async {
+    final nameController = TextEditingController(text: currentName);
+    var selectedClass = currentClass;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xEE070C0A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF1F5A41)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Profile Setup', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: nameController,
+                  maxLength: 20,
+                  decoration: const InputDecoration(
+                    labelText: 'Name',
+                    hintText: 'Bound Soul',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<PlayerClass>(
+                  value: selectedClass,
+                  items: PlayerClass.values
+                      .map(
+                        (c) => DropdownMenuItem<PlayerClass>(
+                          value: c,
+                          child: Text(c.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setSheetState(() => selectedClass = value);
+                  },
+                  decoration: const InputDecoration(labelText: 'Class'),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ref.read(gameProvider.notifier).updatePlayerProfile(
+                            name: nameController.text,
+                            classPath: selectedClass,
+                          );
+                      Navigator.pop(context);
+                    },
+                    icon: const FaIcon(FontAwesomeIcons.check, size: 14),
+                    label: const Text('Save Profile'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    nameController.dispose();
   }
 }

@@ -35,6 +35,8 @@ class GameState {
     required this.enemyEffects,
     required this.memoryFlags,
     required this.keeperAlignment,
+    required this.echoShards,
+    required this.unlockedEchoes,
   });
 
   factory GameState.initial() => GameState(
@@ -68,6 +70,8 @@ class GameState {
         enemyEffects: const [],
         memoryFlags: const [],
         keeperAlignment: 0,
+        echoShards: 0,
+        unlockedEchoes: const [],
       );
 
   final Player player;
@@ -90,6 +94,8 @@ class GameState {
   final List<StatusEffect> enemyEffects;
   final List<String> memoryFlags;
   final int keeperAlignment;
+  final int echoShards;
+  final List<String> unlockedEchoes;
 
   GameState copyWith({
     Player? player,
@@ -112,6 +118,8 @@ class GameState {
     List<StatusEffect>? enemyEffects,
     List<String>? memoryFlags,
     int? keeperAlignment,
+    int? echoShards,
+    List<String>? unlockedEchoes,
     bool clearEnemy = false,
   }) =>
       GameState(
@@ -135,6 +143,8 @@ class GameState {
         enemyEffects: enemyEffects ?? this.enemyEffects,
         memoryFlags: memoryFlags ?? this.memoryFlags,
         keeperAlignment: keeperAlignment ?? this.keeperAlignment,
+        echoShards: echoShards ?? this.echoShards,
+        unlockedEchoes: unlockedEchoes ?? this.unlockedEchoes,
       );
 
   Map<String, dynamic> toJson() => {
@@ -158,6 +168,8 @@ class GameState {
         'enemyEffects': enemyEffects.map((e) => e.toJson()).toList(),
         'memoryFlags': memoryFlags,
         'keeperAlignment': keeperAlignment,
+        'echoShards': echoShards,
+        'unlockedEchoes': unlockedEchoes,
       };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -187,5 +199,7 @@ class GameState {
             const [],
         memoryFlags: (json['memoryFlags'] as List?)?.map((e) => e as String).toList() ?? const [],
         keeperAlignment: (json['keeperAlignment'] as int?) ?? 0,
+        echoShards: (json['echoShards'] as int?) ?? 0,
+        unlockedEchoes: (json['unlockedEchoes'] as List?)?.map((e) => e as String).toList() ?? const [],
       );
 }

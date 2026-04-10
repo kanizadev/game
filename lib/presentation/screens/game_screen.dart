@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:async';
 
 import '../../application/providers/game_provider.dart';
 import '../../domain/models/game_state.dart';
@@ -8,6 +9,7 @@ import '../../domain/models/item.dart';
 import '../widgets/action_panel.dart';
 import '../widgets/terminal_log.dart';
 import 'character_stats_screen.dart';
+import 'settings_screen.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -24,12 +26,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   bool _showDamagePopup = false;
   Color _flashColor = Colors.transparent;
   bool _showFlash = false;
+  bool _showInlineHint = false;
+  bool _autoAdvanceEnabled = false;
+  Timer? _autoAdvanceTimer;
 
   @override
   void initState() {
     super.initState();
     final state = ref.read(gameProvider);
     _observedLogLength = state.log.length;
+  }
+
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -42,20 +53,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       appBar: AppBar(
         title: const Text('Echoes of the Hollow Realm'),
         actions: [
-          IconButton(
-            onPressed: () {
-              notifier.playMenuOpen();
-              _showInventoryModal(context, state, notifier);
-            },
-            icon: const FaIcon(FontAwesomeIcons.boxArchive, size: 16),
-          ),
-          IconButton(
-            onPressed: () {
-              notifier.playMenuOpen();
-              Navigator.pushNamed(context, CharacterStatsScreen.routeName);
-            },
-            icon: const FaIcon(FontAwesomeIcons.user, size: 16),
-          ),
           IconButton(
             onPressed: () async {
               await notifier.saveGame();
@@ -101,6 +98,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           onSoulBurst: notifier.useSoulBurst,
                         )
                       : _buildExplorationPanel(state, notifier, context);
+                  final controlsWithHints = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      battleControls,
+                      const SizedBox(height: 8),
+                      _buildInlineHintPanel(state),
+                    ],
+                  );
 
                   if (wide) {
                     return Column(
@@ -115,7 +121,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             children: [
                               Expanded(flex: 3, child: TerminalLog(log: state.log)),
                               const SizedBox(width: 12),
-                              Expanded(flex: 2, child: battleControls),
+                              Expanded(
+                                flex: 2,
+                                child: SingleChildScrollView(child: controlsWithHints),
+                              ),
                             ],
                           ),
                         ),
@@ -130,7 +139,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       const SizedBox(height: 8),
                       _TurnBanner(state: state),
                       Expanded(child: TerminalLog(log: state.log)),
-                      battleControls,
+                      controlsWithHints,
                     ],
                   );
                 },
@@ -167,6 +176,102 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: const Color(0xEE070C0A),
+        indicatorColor: const Color(0x332CFF8F),
+        selectedIndex: 0,
+        onDestinationSelected: (index) => _handleBottomNavTap(
+          index: index,
+          context: context,
+          state: state,
+          notifier: notifier,
+        ),
+        destinations: const [
+          NavigationDestination(
+            icon: FaIcon(FontAwesomeIcons.user, size: 14),
+            label: 'Profile',
+          ),
+          NavigationDestination(
+            icon: FaIcon(FontAwesomeIcons.boxArchive, size: 14),
+            label: 'Inventory',
+          ),
+          NavigationDestination(
+            icon: FaIcon(FontAwesomeIcons.gear, size: 14),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleBottomNavTap({
+    required int index,
+    required BuildContext context,
+    required GameState state,
+    required GameNotifier notifier,
+  }) {
+    notifier.playMenuOpen();
+    if (index == 0) {
+      Navigator.pushNamed(context, CharacterStatsScreen.routeName);
+      return;
+    }
+    if (index == 1) {
+      _showInventoryModal(context, state, notifier);
+      return;
+    }
+    Navigator.pushNamed(context, SettingsScreen.routeName);
+  }
+
+  void _toggleAutoAdvance() {
+    setState(() => _autoAdvanceEnabled = !_autoAdvanceEnabled);
+    if (_autoAdvanceEnabled) {
+      _autoAdvanceTimer?.cancel();
+      _autoAdvanceTimer = Timer.periodic(const Duration(milliseconds: 1600), (_) {
+        if (!mounted) return;
+        final state = ref.read(gameProvider);
+        if (state.phase != GamePhase.exploring || state.phase == GamePhase.gameOver) {
+          return;
+        }
+        ref.read(gameProvider.notifier).advanceTurnDay();
+      });
+      return;
+    }
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = null;
+  }
+
+  Widget _buildInlineHintPanel(GameState state) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xA10A140E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF1F5A41)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _showInlineHint = !_showInlineHint),
+            icon: FaIcon(
+              _showInlineHint ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.lightbulb,
+              size: 12,
+            ),
+            label: Text(_showInlineHint ? 'Hide Hint' : 'Show Hint'),
+          ),
+          if (_showInlineHint) ...[
+            const SizedBox(height: 8),
+            Text(
+              _contextHint(state),
+              style: const TextStyle(
+                color: Color(0xFFB7FFD8),
+                fontSize: 12,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -225,6 +330,35 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (!mounted) return;
       setState(() => _showFlash = false);
     });
+  }
+
+  String _contextHint(GameState state) {
+    if (state.phase == GamePhase.battle) {
+      if (!state.isPlayerTurn) {
+        return 'Read enemy intent before your next turn. If pressure spikes, Defend first to survive and keep the loop alive.';
+      }
+      if (state.player.currentHp <= state.player.maxHp * 0.35) {
+        return 'Your HP is low. Use Item or Defend now. Surviving one more turn is often stronger than forcing damage.';
+      }
+      if (state.player.soulBurstCharge >= 100) {
+        return 'Soul Burst is ready. Save it for elite pressure turns or use it now if this enemy could end your loop.';
+      }
+      if (state.player.currentSoul < 12) {
+        return 'SOUL is low, so basic Attack/Defend is your safest tempo line. Rebuild charge, then cast Skill.';
+      }
+      return 'Mix Attack and Skill to build pressure. If enemy intent looks dangerous, pivot to Defend before you lose momentum.';
+    }
+
+    if (state.player.currentHp <= state.player.maxHp * 0.5) {
+      return 'In exploration, heal before pushing deeper. A safe day now prevents a costly loop reset later.';
+    }
+    if (state.inventory.where((i) => i.type == ItemType.consumable).isEmpty) {
+      return 'You are out of consumables. Forage or choose safer routes before committing to risk-heavy encounters.';
+    }
+    if (state.loopCount >= 2) {
+      return 'Use loop knowledge: choose branches that set memory flags and Keeper alignment to unlock stronger future options.';
+    }
+    return 'Advance steadily: make one choice, then keep moving. Every day should teach you something about enemies, routes, or trade-offs.';
   }
 
   Future<void> _showInventoryModal(
@@ -341,7 +475,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ElevatedButton.icon(
               onPressed: notifier.advanceTurnDay,
               icon: const FaIcon(FontAwesomeIcons.forwardStep, size: 16),
-              label: const Text('Advance'),
+              label: Text('Advance to Day ${state.day + 1}'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _toggleAutoAdvance,
+              icon: FaIcon(
+                _autoAdvanceEnabled ? FontAwesomeIcons.pause : FontAwesomeIcons.play,
+                size: 14,
+              ),
+              label: Text(_autoAdvanceEnabled ? 'Auto Advance: On' : 'Auto Advance: Off'),
             ),
           ],
         ),
@@ -376,6 +518,11 @@ class _TurnBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Text(text, style: const TextStyle(color: Color(0xFFB7FFD8), fontSize: 12)),
           const Spacer(),
+          Text(
+            'Day ${state.day}  Rift ${state.riftLevel}  Loop ${state.loopCount}  Echo ${state.echoShards}',
+            style: const TextStyle(color: Color(0xFF8ED2AE), fontSize: 11),
+          ),
+          const SizedBox(width: 10),
           Text(
             'Combo x${state.comboChain}',
             style: const TextStyle(color: Color(0xFF73FFD9), fontSize: 12),

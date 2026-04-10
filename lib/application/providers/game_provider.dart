@@ -6,6 +6,7 @@ import '../../data/local/save_service.dart';
 import '../../domain/models/game_state.dart';
 import '../../domain/models/item.dart';
 import '../../domain/models/player.dart';
+import '../../domain/models/player_class.dart';
 import '../../domain/models/status_effect.dart';
 import '../../domain/services/battle_service.dart';
 import '../../domain/services/combat_engine.dart';
@@ -15,20 +16,24 @@ import '../../domain/services/random_event_service.dart';
 import '../../domain/services/sound_service.dart';
 import '../../domain/services/status_effect_service.dart';
 
-final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) => GameNotifier());
+final gameProvider = StateNotifierProvider<GameNotifier, GameState>(
+  (ref) => GameNotifier(),
+);
 
 class GameNotifier extends StateNotifier<GameState> {
   GameNotifier()
-      : _saveService = SaveService(),
-        _randomEventService = RandomEventService(),
-        _battleService = BattleService(),
-        _combatEngine = CombatEngine(
-          battleService: BattleService(),
-          statusEffectService: StatusEffectService(),
-          enemyAiService: EnemyAiService(),
-        ),
-        _soundService = SoundService(),
-        super(GameState.initial());
+    : _saveService = SaveService(),
+      _randomEventService = RandomEventService(),
+      _battleService = BattleService(),
+      _combatEngine = CombatEngine(
+        battleService: BattleService(),
+        statusEffectService: StatusEffectService(),
+        enemyAiService: EnemyAiService(),
+      ),
+      _soundService = SoundService(),
+      super(GameState.initial()) {
+    unawaited(_soundService.setEnabled(state.soundEnabled));
+  }
 
   final SaveService _saveService;
   final RandomEventService _randomEventService;
@@ -47,6 +52,10 @@ class GameNotifier extends StateNotifier<GameState> {
     final loaded = await _saveService.load();
     if (loaded == null) return false;
     state = loaded;
+    unawaited(_soundService.setEnabled(state.soundEnabled));
+    if (state.soundEnabled) {
+      _syncBgmToState();
+    }
     _appendLog('> Save loaded. Systems synchronized.');
     return true;
   }
@@ -78,9 +87,19 @@ class GameNotifier extends StateNotifier<GameState> {
     _appendLog('> You advance cautiously to day $nextDay.');
 
     if (_randomEventService.shouldTriggerEncounter(nextDay, state.riftLevel)) {
-      final enemy = _randomEventService.randomEnemy(state.player.level, state.riftLevel);
-      state = state.copyWith(day: nextDay, phase: GamePhase.battle, enemy: enemy, isPlayerTurn: true, storyBeat: state.storyBeat + 1);
+      final enemy = _randomEventService.randomEnemy(
+        state.player.level,
+        state.riftLevel,
+      );
+      state = state.copyWith(
+        day: nextDay,
+        phase: GamePhase.battle,
+        enemy: enemy,
+        isPlayerTurn: true,
+        storyBeat: state.storyBeat + 1,
+      );
       _appendLog('> Day $nextDay encounter! ${enemy.name} appears.');
+      _appendEncounterForecast(enemy.name);
       _playEncounterSound(enemy.name);
       _syncBgmToState();
       _autoSave();
@@ -104,7 +123,10 @@ class GameNotifier extends StateNotifier<GameState> {
 
     if (choiceId == 'rest') {
       final healed = (state.player.currentHp + 12).clamp(0, state.player.maxHp);
-      final soul = (state.player.currentSoul + 10).clamp(0, state.player.maxSoul);
+      final soul = (state.player.currentSoul + 10).clamp(
+        0,
+        state.player.maxSoul,
+      );
       state = state.copyWith(
         player: state.player.copyWith(currentHp: healed, currentSoul: soul),
       );
@@ -179,7 +201,10 @@ class GameNotifier extends StateNotifier<GameState> {
       final player = state.player.copyWith(
         baseAttack: state.player.baseAttack + 2,
         maxSoul: state.player.maxSoul + 4,
-        currentSoul: (state.player.currentSoul + 8).clamp(0, state.player.maxSoul + 4),
+        currentSoul: (state.player.currentSoul + 8).clamp(
+          0,
+          state.player.maxSoul + 4,
+        ),
       );
       state = state.copyWith(
         player: player,
@@ -224,7 +249,8 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void playerAttack() {
     final enemy = state.enemy;
-    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle)
+      return;
 
     final weaponBonus = state.inventory
         .where((item) => item.type == ItemType.weapon)
@@ -262,12 +288,18 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
-    state = state.copyWith(isPlayerTurn: false, turnCounter: state.turnCounter + 1);
+    state = state.copyWith(
+      isPlayerTurn: false,
+      turnCounter: state.turnCounter + 1,
+    );
     enemyTurn();
   }
 
   void playerDefend() {
-    if (state.enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (state.enemy == null ||
+        !state.isPlayerTurn ||
+        state.phase != GamePhase.battle)
+      return;
     _appendLog('> You brace for impact.');
     state = state.copyWith(
       isPlayerTurn: false,
@@ -292,10 +324,17 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void playerRun() {
-    if (state.enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (state.enemy == null ||
+        !state.isPlayerTurn ||
+        state.phase != GamePhase.battle)
+      return;
     if (_battleService.tryRunAway()) {
       _appendLog('> You escape the encounter.');
-      state = state.copyWith(phase: GamePhase.exploring, clearEnemy: true, isPlayerTurn: true);
+      state = state.copyWith(
+        phase: GamePhase.exploring,
+        clearEnemy: true,
+        isPlayerTurn: true,
+      );
       _autoSave();
       return;
     }
@@ -316,14 +355,21 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void castSkill() {
     final enemy = state.enemy;
-    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle)
+      return;
     if (state.player.currentSoul < 12) {
       _appendLog('> Not enough SOUL to cast.');
       return;
     }
 
-    final hasSoulFireMastery = state.player.unlockedSkills.contains('arcanist_soul_fire');
-    final magicAttack = state.player.baseAttack + 8 + (state.player.level * 2) + (hasSoulFireMastery ? 4 : 0);
+    final hasSoulFireMastery = state.player.unlockedSkills.contains(
+      'arcanist_soul_fire',
+    );
+    final magicAttack =
+        state.player.baseAttack +
+        8 +
+        (state.player.level * 2) +
+        (hasSoulFireMastery ? 4 : 0);
     var damage = _battleService.calculateDamage(
       attackerPower: magicAttack,
       defenderPower: (enemy.defense * 0.7).round(),
@@ -331,11 +377,17 @@ class GameNotifier extends StateNotifier<GameState> {
     if (enemy.weakToMagic) damage = (damage * 1.4).round();
 
     final remainingEnemyHp = (enemy.currentHp - damage).clamp(0, enemy.maxHp);
-    final nextSoul = (state.player.currentSoul - 12).clamp(0, state.player.maxSoul);
+    final nextSoul = (state.player.currentSoul - 12).clamp(
+      0,
+      state.player.maxSoul,
+    );
     final burstCharge = (state.player.soulBurstCharge + 25).clamp(0, 100);
     state = state.copyWith(
       enemy: enemy.copyWith(currentHp: remainingEnemyHp),
-      player: state.player.copyWith(currentSoul: nextSoul, soulBurstCharge: burstCharge),
+      player: state.player.copyWith(
+        currentSoul: nextSoul,
+        soulBurstCharge: burstCharge,
+      ),
       comboChain: state.comboChain + 1,
       lastPlayerAction: 'skill',
       turnCounter: state.turnCounter + 1,
@@ -364,7 +416,8 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void useSoulBurst() {
     final enemy = state.enemy;
-    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle) return;
+    if (enemy == null || !state.isPlayerTurn || state.phase != GamePhase.battle)
+      return;
     if (state.player.soulBurstCharge < 100) {
       _appendLog('> Soul Burst is not fully charged.');
       return;
@@ -384,7 +437,9 @@ class GameNotifier extends StateNotifier<GameState> {
       return;
     }
 
-    final hasOverdrive = state.player.unlockedSkills.contains('vanguard_overdrive');
+    final hasOverdrive = state.player.unlockedSkills.contains(
+      'vanguard_overdrive',
+    );
     final damage = _battleService.calculateDamage(
       attackerPower: state.player.baseAttack + 40 + (hasOverdrive ? 10 : 0),
       defenderPower: (enemy.defense * 0.5).round(),
@@ -409,6 +464,31 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void usePotionOutsideBattle() => _consumePotion();
+
+  void updatePlayerProfile({
+    required String name,
+    required PlayerClass classPath,
+  }) {
+    final nextName = name.trim().isEmpty ? 'Bound Soul' : name.trim();
+    final current = state.player;
+    var nextSkills = current.unlockedSkills;
+    if (classPath != current.classPath && current.level <= 1) {
+      nextSkills = switch (classPath) {
+        PlayerClass.vanguard => const ['vanguard_combo_core'],
+        PlayerClass.arcanist => const ['arcanist_mana_lattice'],
+        PlayerClass.shade => const ['shade_blade_veil'],
+      };
+    }
+    state = state.copyWith(
+      player: current.copyWith(
+        name: nextName,
+        classPath: classPath,
+        unlockedSkills: nextSkills,
+      ),
+    );
+    _appendLog('> Profile updated. $nextName walks the $classPath path.');
+    _autoSave();
+  }
 
   void enemyTurn({bool playerDefending = false}) {
     final enemy = state.enemy;
@@ -465,10 +545,14 @@ class GameNotifier extends StateNotifier<GameState> {
     final enemy = state.enemy;
     if (enemy == null) return;
 
-    var player = state.player.copyWith(gold: state.player.gold + enemy.goldReward);
+    var player = state.player.copyWith(
+      gold: state.player.gold + enemy.goldReward,
+    );
     final hasKeeperPact = state.memoryFlags.contains('keeper_pact');
     if (hasKeeperPact) {
-      player = player.copyWith(currentSoul: (player.currentSoul + 4).clamp(0, player.maxSoul));
+      player = player.copyWith(
+        currentSoul: (player.currentSoul + 4).clamp(0, player.maxSoul),
+      );
     }
     player = LevelService.applyXp(player, enemy.xpReward);
     player = _unlockStarterSkills(player);
@@ -492,7 +576,9 @@ class GameNotifier extends StateNotifier<GameState> {
       enemyEffects: const [],
     );
 
-    _appendLog('> ${enemy.name} defeated. +${enemy.xpReward} XP, +${enemy.goldReward} gold.');
+    _appendLog(
+      '> ${enemy.name} defeated. +${enemy.xpReward} XP, +${enemy.goldReward} gold.',
+    );
     unawaited(_soundService.playSfx(SfxType.enemyDeath));
     _appendLog('> You advance to Rift Level $nextRiftLevel.');
     _syncBgmToState();
@@ -505,16 +591,24 @@ class GameNotifier extends StateNotifier<GameState> {
   }
 
   void _consumePotion() {
-    final potionIndex = state.inventory.indexWhere((item) => item.type == ItemType.consumable);
+    final potionIndex = state.inventory.indexWhere(
+      (item) => item.type == ItemType.consumable,
+    );
     if (potionIndex < 0) {
       _appendLog('> No consumable available.');
       return;
     }
 
     final potion = state.inventory[potionIndex];
-    final healed = (state.player.currentHp + potion.value).clamp(0, state.player.maxHp);
+    final healed = (state.player.currentHp + potion.value).clamp(
+      0,
+      state.player.maxHp,
+    );
     final nextInventory = [...state.inventory]..removeAt(potionIndex);
-    state = state.copyWith(player: state.player.copyWith(currentHp: healed), inventory: nextInventory);
+    state = state.copyWith(
+      player: state.player.copyWith(currentHp: healed),
+      inventory: nextInventory,
+    );
     _appendLog('> You use ${potion.name} and recover ${potion.value} HP.');
     unawaited(_soundService.playSfx(SfxType.itemUse));
     _autoSave();
@@ -522,29 +616,122 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void _applyDeathLoop() {
     final nextLoop = state.loopCount + 1;
-    final keepsLoopCrystal = state.inventory.any((item) => item.id == 'loop_crystal');
+    final nextEchoShards = state.echoShards + 1;
+    final unlockedEchoes = _resolveUnlockedEchoes(
+      nextEchoShards,
+      state.unlockedEchoes,
+    );
+    final keepsLoopCrystal = state.inventory.any(
+      (item) => item.id == 'loop_crystal',
+    );
     final persistentItems = keepsLoopCrystal
         ? state.inventory.where((i) => i.type == ItemType.relic).toList()
         : <Item>[];
     final reset = GameState.initial();
+    final baseInventory = [...reset.inventory, ...persistentItems];
+    final inventoryWithEchoes = unlockedEchoes.contains('echo_cache')
+        ? [
+            ...baseInventory,
+            const Item(
+              id: 'echo_potion',
+              name: 'Echo Potion',
+              type: ItemType.consumable,
+              value: 20,
+              description: 'Restores 20 HP. Reformed by loop memory.',
+            ),
+          ]
+        : baseInventory;
+    final nextPlayer = _applyEchoBonusesToPlayer(reset.player, unlockedEchoes);
     state = reset.copyWith(
+      player: nextPlayer,
       loopCount: nextLoop,
       riftLevel: (1 + (nextLoop ~/ 2)).clamp(1, 99),
       storyBeat: state.storyBeat + 1,
-      inventory: [...reset.inventory, ...persistentItems],
-      memoryFlags: {...state.memoryFlags, 'died_once', if (nextLoop >= 3) 'loop_hardened'}.toList(),
+      inventory: inventoryWithEchoes,
+      memoryFlags: {
+        ...state.memoryFlags,
+        'died_once',
+        if (nextLoop >= 3) 'loop_hardened',
+      }.toList(),
       keeperAlignment: state.keeperAlignment,
+      echoShards: nextEchoShards,
+      unlockedEchoes: unlockedEchoes,
       log: [
         ...state.log,
         '> You fall... then wake again.',
         '> Loop #$nextLoop begins. NPCs whisper fragments of your past life.',
+        '> Echo Shard gained. Total shards: $nextEchoShards.',
+        ..._echoUnlockLogs(unlockedEchoes, state.unlockedEchoes),
+        '> Memory remains: ${unlockedEchoes.isEmpty ? 'none yet' : unlockedEchoes.join(', ')}.',
       ],
     );
   }
 
+  List<String> _resolveUnlockedEchoes(int echoShards, List<String> current) {
+    final echoes = {...current};
+    if (echoShards >= 1) echoes.add('echo_vitality');
+    if (echoShards >= 2) echoes.add('echo_cache');
+    if (echoShards >= 3) echoes.add('echo_foresight');
+    return echoes.toList()..sort();
+  }
+
+  Player _applyEchoBonusesToPlayer(Player player, List<String> echoes) {
+    var next = player;
+    if (echoes.contains('echo_vitality')) {
+      next = next.copyWith(
+        maxHp: next.maxHp + 5,
+        currentHp: next.currentHp + 5,
+      );
+    }
+    return next;
+  }
+
+  List<String> _echoUnlockLogs(List<String> next, List<String> previous) {
+    final previousSet = previous.toSet();
+    final added = next.where((echo) => !previousSet.contains(echo)).toList();
+    return added.map((echo) {
+      return switch (echo) {
+        'echo_vitality' =>
+          '> Echo Unlocked: Vitality (+5 Max HP each loop start).',
+        'echo_cache' =>
+          '> Echo Unlocked: Cache (start each loop with an extra consumable).',
+        'echo_foresight' =>
+          '> Echo Unlocked: Foresight (encounter forecast in logs).',
+        _ => '> Echo resonance deepens.',
+      };
+    }).toList();
+  }
+
+  void _appendEncounterForecast(String enemyName) {
+    if (!state.unlockedEchoes.contains('echo_foresight')) return;
+    if (enemyName == 'Soul Leech') {
+      _appendLog(
+        '> Echo Foresight: Siphon pattern detected. Guard before sustain turns.',
+      );
+      return;
+    }
+    if (enemyName == 'Mirror Shade') {
+      _appendLog(
+        '> Echo Foresight: Mirror behavior detected. Avoid reckless burst openers.',
+      );
+      return;
+    }
+    if (enemyName == 'The Forgotten King' ||
+        enemyName == 'The Time Devourer' ||
+        enemyName == 'The Keeper') {
+      _appendLog(
+        '> Echo Foresight: Boss pressure spike expected. Save Soul Burst.',
+      );
+      return;
+    }
+    _appendLog('> Echo Foresight: Standard aggression pattern expected.');
+  }
+
   void _appendLog(String message) {
     final lines = [...state.log, message];
-    state = state.copyWith(log: lines.length > 200 ? lines.sublist(lines.length - 200) : lines);
+    state = state.copyWith(
+      log: lines.length > 200 ? lines.sublist(lines.length - 200) : lines,
+    );
   }
 
   void _playEncounterSound(String enemyName) {
@@ -560,7 +747,8 @@ class GameNotifier extends StateNotifier<GameState> {
   void _syncBgmToState() {
     if (!state.soundEnabled) return;
     if (state.phase == GamePhase.battle && state.enemy != null) {
-      final isBoss = state.enemy!.name == 'The Forgotten King' ||
+      final isBoss =
+          state.enemy!.name == 'The Forgotten King' ||
           state.enemy!.name == 'The Time Devourer' ||
           state.enemy!.name == 'The Keeper';
       unawaited(_soundService.playBgm(isBoss ? BgmType.boss : BgmType.battle));
